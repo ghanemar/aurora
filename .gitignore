@@ -4,7 +4,6 @@ __pycache__/
 *$py.class
 *.so
 .Python
-env/
 build/
 develop-eggs/
 dist/
@@ -17,30 +16,75 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environment
+# Virtual environments
+.env
+.venv
+env/
 venv/
-.venv/
 ENV/
+env.bak/
+venv.bak/
 
-# Environment Variables
-.env*
-!.env.example
+# Poetry
+poetry.lock
+.poetry/
 
-# IDE
+# IDEs
+.vscode/
 .idea/
 *.swp
 *.swo
+*~
+.DS_Store
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+*.log
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+.pytype/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment variables
+.env*
+!.env.example
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
 
 # OS
 .DS_Store
-Thumbs.db 
+Thumbs.db
 
-# Logs
-*.log
+# Alembic
+alembic/versions/*.pyc
 
 # Prompt files
 prompt.md
