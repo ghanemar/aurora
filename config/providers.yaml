@@ -1,0 +1,65 @@
+# Aurora Provider Configurations
+# This file defines data provider configurations for blockchain data ingestion.
+# API keys can be provided here or via environment variables (PROVIDER_NAME_API_KEY).
+
+providers:
+  - provider_name: "solana_beach"
+    enabled: true
+    base_url: "https://api.solanabeach.io/v1"
+    # API key can be set via SOLANA_BEACH_API_KEY environment variable
+    rate_limit: 10  # requests per second
+    timeout: 30  # seconds
+    retry_attempts: 3
+    metadata:
+      description: "Solana Beach API for fees and rewards data"
+      documentation: "https://docs.solanabeach.io"
+      supported_chains: ["solana-mainnet", "solana-testnet"]
+
+  - provider_name: "jito"
+    enabled: true
+    base_url: "https://kobe.mainnet.jito.network"
+    # API key can be set via JITO_API_KEY environment variable
+    rate_limit: 5  # requests per second
+    timeout: 30
+    retry_attempts: 3
+    metadata:
+      description: "Jito MEV data provider for Solana"
+      documentation: "https://docs.jito.network"
+      supported_chains: ["solana-mainnet"]
+      mev_focused: true
+
+  # Example of a disabled provider
+  - provider_name: "solscan"
+    enabled: false
+    base_url: "https://api.solscan.io"
+    rate_limit: 10
+    timeout: 30
+    retry_attempts: 3
+    metadata:
+      description: "Solscan API (currently disabled)"
+      documentation: "https://docs.solscan.io"
+      supported_chains: ["solana-mainnet", "solana-testnet"]
+
+  # Placeholder for future Ethereum providers (M1)
+  # - provider_name: "etherscan"
+  #   enabled: true
+  #   base_url: "https://api.etherscan.io/api"
+  #   rate_limit: 5
+  #   timeout: 30
+  #   retry_attempts: 3
+  #   metadata:
+  #     description: "Etherscan API for Ethereum data"
+  #     documentation: "https://docs.etherscan.io"
+  #     supported_chains: ["ethereum-mainnet"]
+
+  # - provider_name: "flashbots"
+  #   enabled: true
+  #   base_url: "https://blocks.flashbots.net/v1"
+  #   rate_limit: 5
+  #   timeout: 30
+  #   retry_attempts: 3
+  #   metadata:
+  #     description: "Flashbots MEV data for Ethereum"
+  #     documentation: "https://docs.flashbots.net"
+  #     supported_chains: ["ethereum-mainnet"]
+  #     mev_focused: true
