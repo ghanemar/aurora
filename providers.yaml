@@ -1,0 +1,56 @@
+# providers.yaml — starter
+providers:
+  solanabeach:
+    enabled: true
+    base_url: https://api.solanabeach.io
+    api_key: ${SOLANABEACH_API_KEY}
+    notes: Epoch-level block fee totals per validator (execution fees).
+
+  jito:
+    enabled: true
+    base_url: https://...
+    api_key: ${JITO_API_KEY}
+    notes: TipDistribution / MEV tips per validator & epoch.
+
+  rpc:
+    enabled: true
+    solana:
+      url: ${SOLANA_RPC_URL}
+      concurrency: 8
+      timeout_sec: 30
+      notes: Use getInflationReward + account scans; aggregate per validator.
+    evm:
+      url: ${ETH_RPC_URL}
+      concurrency: 4
+      timeout_sec: 30
+      notes: Reserved for future chains.
+
+  stakewiz:
+    enabled: true
+    base_url: https://api.stakewiz.com
+    api_key: ${STAKEWIZ_API_KEY}
+    notes: Metadata (commission%, is_jito), stake counts.
+
+  evm_block_fees:
+    enabled: false
+    base_url: https://...
+    api_key: ${EVM_FEES_API_KEY}
+    notes: Per-window base+priority fees to fee recipient.
+
+  mev_relay_api:
+    enabled: false
+    base_url: https://...
+    api_key: ${MEV_RELAY_API_KEY}
+    notes: Relay/builder tip data (PBS).
+
+  consensus_api:
+    enabled: false
+    base_url: https://...
+    api_key: ${CONSENSUS_API_KEY}
+    notes: Proposer/attestation rewards from beacon chain.
+
+  beacon_api:
+    enabled: false
+    base_url: https://...
+    api_key: ${BEACON_API_KEY}
+    notes: Validator metadata / status.

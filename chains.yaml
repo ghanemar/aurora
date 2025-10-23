@@ -1,0 +1,27 @@
+# chains.yaml — starter
+chains:
+  - chain_id: solana-mainnet
+    name: Solana Mainnet
+    period_type: EPOCH
+    native_unit: lamports
+    native_decimals: 9
+    finality_lag: 2        # epochs to wait before finalizing computations
+    providers:
+      fees: solanabeach        # epoch-level execution fees per validator
+      mev: jito                # Jito tip distributions per epoch
+      rewards: rpc             # getInflationReward aggregation
+      meta: stakewiz           # commission%, is_mev_client, stake stats
+      rpc_url: ${SOLANA_RPC_URL}
+
+  - chain_id: ethereum-mainnet
+    name: Ethereum Mainnet
+    period_type: BLOCK_WINDOW  # e.g., weekly windows
+    native_unit: wei
+    native_decimals: 18
+    finality_lag: 100          # blocks (for safety); adjust per ops policy
+    providers:
+      fees: evm_block_fees     # base+priority fees to fee recipient
+      mev: mev_relay_api       # relay/builder tips (PBS)
+      rewards: consensus_api   # proposer/attestation rewards (beacon)
+      meta: beacon_api         # validator metadata (beacon)
+      rpc_url: ${ETH_RPC_URL}
