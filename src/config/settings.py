@@ -21,6 +21,10 @@ class Settings(BaseSettings):
         chains_config_file: Path to chains.yaml configuration file
         providers_config_file: Path to providers.yaml configuration file
         database_url: PostgreSQL database connection URL
+        database_pool_size: Database connection pool size
+        database_max_overflow: Database max overflow connections
+        database_echo: Echo SQL queries to console
+        redis_url: Redis connection URL
         secret_key: Secret key for JWT token generation
         algorithm: Algorithm for JWT encoding
         access_token_expire_minutes: JWT token expiration time
@@ -50,8 +54,22 @@ class Settings(BaseSettings):
 
     # Database settings
     database_url: str = Field(
-        default="postgresql+asyncpg://aurora:aurora@localhost:5432/aurora",
+        default="postgresql+asyncpg://aurora:aurora_dev@localhost:5432/aurora",
         description="Database connection URL",
+    )
+    database_pool_size: int = Field(
+        default=10, ge=1, le=100, description="Database connection pool size"
+    )
+    database_max_overflow: int = Field(
+        default=20, ge=0, le=100, description="Database max overflow connections"
+    )
+    database_echo: bool = Field(
+        default=False, description="Echo SQL queries to console"
+    )
+
+    # Redis settings
+    redis_url: str = Field(
+        default="redis://localhost:6379/0", description="Redis connection URL"
     )
 
     # Security settings

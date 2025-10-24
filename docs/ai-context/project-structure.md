@@ -11,10 +11,11 @@
 - **Pydantic 2.x** - Data validation and settings management with type annotations
 
 ### Database & ORM
-- **PostgreSQL 15+** - Primary relational database (system of record)
-- **SQLAlchemy 2.0+** - Async ORM with type hints
+- **PostgreSQL 15+** - Primary relational database via Docker Compose (system of record)
+- **SQLAlchemy 2.0+** - Async ORM with connection pooling (size: 10, max_overflow: 20)
+- **asyncpg** - High-performance async PostgreSQL adapter
 - **Alembic** - Database migration management
-- **psycopg3** - PostgreSQL adapter with async support
+- **Redis 7+** - Caching and session storage via Docker Compose
 
 ### Job Scheduling & Background Tasks
 - **Prefect OSS / RQ** - Job orchestration and background task processing
@@ -66,9 +67,9 @@ aurora/
 ├── poetry.lock                         # Locked dependencies
 ├── .gitignore                          # Git ignore patterns
 ├── .env.example                        # Environment variable template
+├── conftest.py                         # Root pytest configuration
+├── docker-compose.yml                  # Docker services (PostgreSQL, Redis)
 ├── Makefile                            # Common development tasks
-├── docker-compose.yml                  # Docker services orchestration
-├── Dockerfile                          # Application container image
 ├── alembic.ini                         # Alembic migration configuration
 ├── chains.yaml                         # Chain registry configuration
 ├── providers.yaml                      # Data provider configuration
@@ -76,13 +77,19 @@ aurora/
 │
 ├── src/                                # Source code
 │   ├── __init__.py
+│   ├── py.typed                        # PEP 561 type checking marker
 │   ├── main.py                         # FastAPI application entry point
 │   │
 │   ├── config/                         # Configuration management
 │   │   ├── __init__.py
 │   │   ├── settings.py                 # Pydantic settings from environment
+│   │   ├── models.py                   # Configuration data models
 │   │   ├── chains.py                   # Chain configuration loader
 │   │   └── providers.py                # Provider configuration loader
+│   │
+│   ├── db/                             # Database management
+│   │   ├── __init__.py
+│   │   └── session.py                  # Async SQLAlchemy session factory
 │   │
 │   ├── core/                           # Core business logic
 │   │   ├── __init__.py
@@ -166,108 +173,65 @@ aurora/
 │   │       ├── overrides.py            # POST /overrides
 │   │       └── operations.py           # POST /recompute, GET /ingestion/health
 │   │
-│   ├── jobs/                           # Background job definitions
-│   │   ├── __init__.py
-│   │   ├── ingestion.py                # Ingestion job workflows
-│   │   ├── normalization.py            # Normalization job workflows
-│   │   ├── computation.py              # Computation job workflows
-│   │   └── scheduler.py                # Job scheduling configuration
-│   │
-│   └── db/                             # Database management
+│   └── jobs/                           # Background job definitions
 │       ├── __init__.py
-│       ├── session.py                  # Async database session factory
-│       └── migrations/                 # Alembic migrations
-│           ├── env.py                  # Alembic environment config
-│           ├── script.py.mako          # Migration template
-│           └── versions/               # Migration version files
-│               ├── 001_initial_schema.py
-│               ├── 002_add_ethereum.py
-│               └── 003_add_tier_config.py
+│       ├── ingestion.py                # Ingestion job workflows
+│       ├── normalization.py            # Normalization job workflows
+│       ├── computation.py              # Computation job workflows
+│       └── scheduler.py                # Job scheduling configuration
 │
 ├── tests/                              # Test suite
-│   ├── __init__.py
 │   ├── conftest.py                     # Pytest fixtures and configuration
-│   ├── unit/                           # Unit tests
-│   │   ├── test_services.py            # Service unit tests
-│   │   ├── test_repositories.py        # Repository unit tests
-│   │   ├── test_adapters.py            # Adapter unit tests
-│   │   └── test_utils.py               # Utility function tests
-│   ├── integration/                    # Integration tests
-│   │   ├── test_api_chains.py          # Chain API tests
-│   │   ├── test_api_validators.py      # Validator API tests
-│   │   ├── test_api_partners.py        # Partner API tests
-│   │   ├── test_api_agreements.py      # Agreement API tests
-│   │   └── test_commission_engine.py   # End-to-end commission tests
-│   └── fixtures/                       # Test data fixtures
-│       ├── chains.json                 # Chain test data
-│       ├── providers.json              # Provider test data
-│       └── staging_payloads.json       # Sample staging payloads
+│   └── unit/                           # Unit tests
+│       └── test_config/                # Configuration module tests
+│           ├── __init__.py
+│           ├── test_chains.py          # Chain registry tests
+│           ├── test_models.py          # Configuration model tests
+│           └── test_providers.py       # Provider registry tests
 │
-├── scripts/                            # Automation scripts
-│   ├── setup.sh                        # Environment setup script
-│   ├── seed_dev_data.py                # Seed development database
-│   ├── backfill.py                     # Historical data backfill
-│   ├── validate_agreements.py          # Agreement rule validation
-│   └── maintenance/                    # Maintenance scripts
-│       ├── check_data_integrity.py     # Data integrity checker
-│       └── export_statements.py        # Bulk statement export
-│
-├── docs/                               # Documentation
-│   ├── README.md                       # Documentation index
-│   ├── system-architecture.md          # Complete system architecture
-│   ├── database-schema.md              # Database schema documentation
-│   ├── api-specification.md            # API specification with examples
-│   ├── rbac_policy.md                  # RBAC policy matrix
-│   │
-│   ├── ai-context/                     # AI-specific documentation
-│   │   ├── project-structure.md        # This file
-│   │   ├── docs-overview.md            # Documentation architecture guide
-│   │   ├── system-integration.md       # Cross-component integration patterns
-│   │   ├── deployment-infrastructure.md # Infrastructure and deployment
-│   │   └── HANDOFF.md                  # Task management and session continuity
-│   │
-│   ├── specs/                          # Feature specifications
-│   │   └── example-feature-specification.md
-│   │
-│   ├── open-issues/                    # Issue tracking
-│   │   └── example-api-performance-issue.md
-│   │
-│   └── runbooks/                       # Operational runbooks
-│       ├── deployment.md               # Deployment procedures
-│       ├── backup-restore.md           # Backup and restore procedures
-│       └── troubleshooting.md          # Common troubleshooting guides
-│
-├── frontend/                           # Frontend application (future)
-│   ├── package.json                    # NPM dependencies
-│   ├── tsconfig.json                   # TypeScript configuration
-│   ├── vite.config.ts                  # Vite build configuration
-│   ├── src/                            # Frontend source code
-│   │   ├── main.tsx                    # Application entry point
-│   │   ├── App.tsx                     # Root component
-│   │   ├── components/                 # UI components
-│   │   │   ├── admin/                  # Admin portal components
-│   │   │   └── partner/                # Partner portal components
-│   │   ├── pages/                      # Page components
-│   │   │   ├── dashboard.tsx           # Dashboard page
-│   │   │   ├── validators.tsx          # Validator P&L page
-│   │   │   ├── partners.tsx            # Partner commissions page
-│   │   │   └── agreements.tsx          # Agreement management page
-│   │   ├── api/                        # API client
-│   │   │   ├── client.ts               # HTTP client setup
-│   │   │   └── endpoints/              # API endpoint definitions
-│   │   └── utils/                      # Frontend utilities
-│   └── tests/                          # Frontend tests
-│
-└── nginx/                              # Nginx configuration
-    ├── nginx.conf                      # Main Nginx config
-    ├── ssl/                            # TLS certificates
-    └── sites-available/                # Site configurations
-        └── aurora.conf                 # Aurora site config
+└── docs/                               # Documentation
+    ├── README.md                       # Documentation index
+    ├── system-architecture.md          # Complete system architecture
+    ├── database-schema.md              # Database schema documentation
+    ├── api-specification.md            # API specification with examples
+    ├── design-summary.md               # Design summary
+    ├── github-issues-plan.md           # GitHub issues and milestones
+    ├── rbac_policy.md                  # RBAC policy matrix
+    │
+    ├── ai-context/                     # AI-specific documentation
+    │   ├── project-structure.md        # This file
+    │   ├── docs-overview.md            # Documentation architecture guide
+    │   ├── system-integration.md       # Cross-component integration patterns
+    │   ├── deployment-infrastructure.md # Infrastructure and deployment
+    │   └── HANDOFF.md                  # Task management and session continuity
+    │
+    ├── specs/                          # Feature specifications
+    │   ├── example-feature-specification.md
+    │   └── example-api-integration-spec.md
+    │
+    ├── open-issues/                    # Issue tracking
+    │   └── example-api-performance-issue.md
+    │
+    └── CONTEXT-*.md                    # Tier 2/3 component documentation
 ```
 
 ---
 
 ## Key Directories Explained
+
+### `/src/config/`
+Configuration management layer using Pydantic Settings and YAML loaders:
+- `settings.py` - Application settings from environment variables (database, Redis, JWT, API)
+- `models.py` - Configuration data models (ChainConfig, ProviderConfig, ProviderMap)
+- `chains.py` - Chain registry loader from chains.yaml
+- `providers.py` - Provider registry loader from providers.yaml
+
+### `/src/db/`
+Database session management and connection handling:
+- `session.py` - Async SQLAlchemy engine with connection pooling (pool_size=10, max_overflow=20)
+- `__init__.py` - Exports engine, async_session_factory, Base, get_db, check_db_connection
+- Provides `get_db()` dependency for FastAPI routes
+- Implements health check and connection validation
 
 ### `/src/core/models/`
 SQLAlchemy ORM models representing database tables. Each file groups related entities:
@@ -420,9 +384,13 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 ## Deployment Strategy
 
 ### On-Premise (MVP)
-- **Docker Compose**: Multi-container deployment (app, db, redis, nginx)
-- **Systemd**: Alternative native deployment on Linux servers
-- **Nginx**: Reverse proxy with TLS termination, static file serving
+- **Docker Compose**: ✅ **Implemented** - PostgreSQL 15 + Redis 7 services configured with health checks
+  - PostgreSQL container with persistent volume and connection validation
+  - Redis container for caching and session storage
+  - Custom bridge network for service communication
+  - See `docker-compose.yml` and `.env.example` for configuration
+- **Systemd**: Alternative native deployment on Linux servers (future)
+- **Nginx**: Reverse proxy with TLS termination, static file serving (future)
 
 ### CI/CD Pipeline (Future)
 1. **Build**: Docker image build, dependency caching
@@ -433,6 +401,11 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: 2025-10-22
-**Status**: Draft
+**Document Version**: 1.1
+**Last Updated**: 2025-10-23
+**Status**: Active
+**Recent Changes**:
+- Refactored project structure from `src/aurora/` to `src/` (cleaner imports)
+- Implemented Docker Compose with PostgreSQL 15 and Redis 7
+- Added async database session management with connection pooling
+- Added `/src/config/` and `/src/db/` directory documentation
