@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 import yaml
 
-from aurora.config.chains import ChainConfigError, ChainRegistry
-from aurora.config.models import PeriodType
+from config.chains import ChainConfigError, ChainRegistry
+from config.models import PeriodType
 
 
 @pytest.fixture

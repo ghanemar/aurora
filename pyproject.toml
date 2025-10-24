@@ -5,7 +5,7 @@ description = "Multi-Chain Validator P&L & Partner Commissions - Deterministic, 
 authors = ["AG and his AI Crew <amer@globalstake.com>"]
 license = "Proprietary"
 readme = "README.md"
-packages = [{include = "aurora", from = "src"}]
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -59,6 +59,8 @@ ignore = [
 
 [tool.mypy]
 python_version = "3.11"
+mypy_path = "src"
+explicit_package_bases = true
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
@@ -72,6 +74,7 @@ no_implicit_optional = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"
-addopts = "-ra -q --strict-markers --cov=src/aurora --cov-report=term-missing"
+addopts = "-ra -q --strict-markers --cov=src --cov-report=term-missing"
 testpaths = ["tests"]
+pythonpath = ["src"]
 asyncio_mode = "auto"

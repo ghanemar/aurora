@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from aurora.config.models import ChainConfig, PeriodType, ProviderConfig, ProviderMap
+from config.models import ChainConfig, PeriodType, ProviderConfig, ProviderMap
 
 
 class TestPeriodType:

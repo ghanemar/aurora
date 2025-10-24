@@ -4,10 +4,10 @@ This module provides configuration loading and management for blockchain
 networks and data providers.
 """
 
-from aurora.config.chains import ChainConfigError, ChainRegistry
-from aurora.config.models import ChainConfig, PeriodType, ProviderConfig, ProviderMap
-from aurora.config.providers import ProviderConfigError, ProviderRegistry
-from aurora.config.settings import Settings, settings
+from config.chains import ChainConfigError, ChainRegistry
+from config.models import ChainConfig, PeriodType, ProviderConfig, ProviderMap
+from config.providers import ProviderConfigError, ProviderRegistry
+from config.settings import Settings, settings
 
 __all__ = [
     # Settings

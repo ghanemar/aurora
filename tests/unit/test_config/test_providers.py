@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from aurora.config.providers import ProviderConfigError, ProviderRegistry
+from config.providers import ProviderConfigError, ProviderRegistry
 
 
 @pytest.fixture
