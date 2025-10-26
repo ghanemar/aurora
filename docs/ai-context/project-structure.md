@@ -69,17 +69,18 @@ This document uses status markers to distinguish between implemented and planned
 
 ## Current Implementation Status
 
-**Completed Setup (as of 2025-10-23)**:
+**Completed Setup (as of 2025-10-26)**:
 - ✅ Python 3.11+ project with Poetry dependency management
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
 - ✅ Docker Compose with PostgreSQL 15 and Redis 7
-- ✅ Test framework with 58 passing tests and 97% coverage
+- ✅ ORM models (`src/core/models/`) for chain registry and configuration
+- ✅ Test framework with 78 passing tests and comprehensive coverage
 - ✅ Type checking with mypy, linting with ruff and black
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (ORM models)
 
-**Next Phase**: Database schema, ORM models, and migration setup (check GitHub issues for current work)
+**Next Phase**: Database migrations with Alembic, staging layer models (check GitHub issues for current work)
 
 ---
 
@@ -120,10 +121,13 @@ aurora/
 │   │   ├── ✅ __init__.py
 │   │   └── ✅ session.py               # Async SQLAlchemy session factory
 │   │
-│   ├── 📋 core/                        # Core business logic (create subdirectories as needed)
-│   │   ├── 📋 __init__.py
-│   │   ├── 📋 models/                  # SQLAlchemy ORM models (create when implementing database schema)
-│   │   │   └── 📋 ... (chains.py, staging.py, canonical.py, computation.py, agreements.py, users.py)
+│   ├── ✅ core/                        # Core business logic (PARTIALLY IMPLEMENTED)
+│   │   ├── ✅ __init__.py
+│   │   ├── ✅ models/                  # SQLAlchemy ORM models (PARTIALLY IMPLEMENTED)
+│   │   │   ├── ✅ __init__.py
+│   │   │   ├── ✅ base.py              # Base model with common timestamp fields
+│   │   │   ├── ✅ chains.py            # Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity
+│   │   │   └── 📋 ... (staging.py, canonical.py, computation.py, agreements.py, users.py)
 │   │   │
 │   │   ├── 📋 schemas/                 # Pydantic request/response schemas (create when implementing API)
 │   │   │   └── 📋 ... (chains.py, validators.py, commissions.py, agreements.py, auth.py, common.py)
@@ -151,13 +155,14 @@ aurora/
 │       └── 📋 ... (ingestion.py, normalization.py, computation.py, scheduler.py)
 │
 ├── ✅ tests/                           # Test suite
-│   ├── ✅ conftest.py                  # Pytest fixtures and configuration
+│   ├── ✅ conftest.py                  # Pytest fixtures and async database session
 │   ├── ✅ unit/                        # Unit tests
-│   │   └── ✅ test_config/             # Configuration module tests
-│   │       ├── ✅ __init__.py
-│   │       ├── ✅ test_chains.py       # Chain registry tests
-│   │       ├── ✅ test_models.py       # Configuration model tests
-│   │       └── ✅ test_providers.py    # Provider registry tests
+│   │   ├── ✅ test_config/             # Configuration module tests
+│   │   │   ├── ✅ __init__.py
+│   │   │   ├── ✅ test_chains.py       # Chain registry tests
+│   │   │   ├── ✅ test_models.py       # Configuration model tests
+│   │   │   └── ✅ test_providers.py    # Provider registry tests
+│   │   └── ✅ test_models_chains.py    # ORM model tests for chain registry
 │   ├── 📋 integration/                 # Integration tests (create when implementing API)
 │   └── 📋 fixtures/                    # Shared test data (create as needed)
 │
@@ -297,23 +302,35 @@ These directories currently exist in the codebase with working implementations:
 - Implements health check and connection validation
 - Connection pooling with automatic recycling and pre-ping
 
-**Current State**: Fully implemented, ready for ORM model integration
+**Current State**: Fully implemented with ORM models integrated
+
+#### `/src/core/models/` ✅
+**Purpose**: SQLAlchemy ORM models representing database tables for chain registry and configuration
+
+**Files**:
+- `base.py` - Base model with common timestamp fields (created_at, updated_at)
+- `chains.py` - Chain registry models:
+  - Chain - Blockchain network definitions (chain_id, name, period_type, native_unit, finality_lag)
+  - Provider - External data provider configurations (provider_name, provider_type, base_url, rate_limit)
+  - ChainProviderMapping - Chain-to-provider relationships with role-based priorities
+  - CanonicalPeriod - Period definitions with finalization tracking
+  - CanonicalValidatorIdentity - Chain-specific validator identities (Solana/Ethereum support)
+
+**Features**:
+- All check constraints, indexes, and foreign keys from database schema
+- Bidirectional relationships between models
+- Cascade delete behavior for referential integrity
+- Support for both Solana (vote_pubkey, node_pubkey) and Ethereum (fee_recipient) validators
+
+**Testing**: 20 comprehensive unit tests covering model creation, constraints, relationships, and cascade behavior
+
+**Current State**: Configuration layer models implemented. Staging, canonical, computation, and user models pending.
 
 ---
 
 ### 📋 Planned Directories
 
 These directories represent the target architecture. Create them as needed for your tasks:
-
-#### `/src/core/models/` 📋
-**Purpose**: SQLAlchemy ORM models representing database tables
-
-**Organization Pattern**: Group related entities by domain
-- Example: `chains.py` contains Chain, Provider, Period models
-- Example: `staging.py` contains IngestionRun, StagingPayload models
-- Example: `canonical.py` contains canonical data models (CanonicalFee, CanonicalReward, etc.)
-
-**When to Create**: When implementing database schema and Alembic migrations
 
 #### `/src/core/schemas/` 📋
 **Purpose**: Pydantic models for API request/response validation (DTOs)
@@ -517,19 +534,20 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.2
-**Last Updated**: 2025-10-24
+**Document Version**: 1.3
+**Last Updated**: 2025-10-26
 **Status**: Active
-**Recent Changes (v1.2 - 2025-10-24)**:
+**Recent Changes (v1.3 - 2025-10-26)**:
+- Added ORM models implementation (`src/core/models/`) for chain registry and configuration
+- Updated file tree to reflect new models directory structure
+- Added comprehensive test suite (78 tests total, 20 for ORM models)
+- Updated Current Implementation Status with completed issue #6
+- Added detailed documentation for Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity models
+
+**Previous Changes (v1.2 - 2025-10-24)**:
 - Added status legend system (✅ Implemented / 📋 Planned)
 - Added Current Implementation Status section
 - Added comprehensive AI Agent Guidance section with architectural layers
 - Refactored file tree with status markers distinguishing reality from plans
 - Split Key Directories into Implemented vs Planned sections
 - YAGNI-compliant: "Create as needed" philosophy documented
-
-**Previous Changes (v1.1 - 2025-10-23)**:
-- Refactored project structure from `src/aurora/` to `src/` (cleaner imports)
-- Implemented Docker Compose with PostgreSQL 15 and Redis 7
-- Added async database session management with connection pooling
-- Added `/src/config/` and `/src/db/` directory documentation
