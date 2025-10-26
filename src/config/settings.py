@@ -42,6 +42,10 @@ class Settings(BaseSettings):
     app_name: str = Field(default="Aurora", description="Application name")
     app_version: str = Field(default="0.1.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
+    log_level: str = Field(
+        default="INFO",
+        description="Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)",
+    )
 
     # Configuration file paths
     config_dir: Path = Field(default=Path("config"), description="Config directory")
@@ -63,14 +67,10 @@ class Settings(BaseSettings):
     database_max_overflow: int = Field(
         default=20, ge=0, le=100, description="Database max overflow connections"
     )
-    database_echo: bool = Field(
-        default=False, description="Echo SQL queries to console"
-    )
+    database_echo: bool = Field(default=False, description="Echo SQL queries to console")
 
     # Redis settings
-    redis_url: str = Field(
-        default="redis://localhost:6379/0", description="Redis connection URL"
-    )
+    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
 
     # Security settings
     secret_key: str = Field(
@@ -84,6 +84,36 @@ class Settings(BaseSettings):
 
     # API settings
     api_v1_prefix: str = Field(default="/api/v1", description="API v1 URL prefix")
+
+    # Security settings - Request limits
+    max_request_size: int = Field(
+        default=10_485_760,  # 10MB
+        ge=1024,  # Minimum 1KB
+        le=104_857_600,  # Maximum 100MB
+        description="Maximum request size in bytes (10MB default)",
+    )
+
+    # Security settings - Rate limiting
+    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
+    rate_limit_requests: int = Field(
+        default=100, ge=1, le=10000, description="Maximum requests per window"
+    )
+    rate_limit_window_seconds: int = Field(
+        default=60, ge=1, le=3600, description="Rate limit time window in seconds"
+    )
+
+    # Security settings - CORS
+    cors_origins: list[str] = Field(
+        default=["http://localhost:3000"],
+        description="Allowed CORS origins",
+    )
+    cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
+
+    # Security settings - API keys (for service-to-service auth)
+    api_keys_enabled: bool = Field(default=False, description="Enable API key authentication")
+    valid_api_keys: list[str] = Field(
+        default=[], description="Valid API keys for service authentication"
+    )
 
     @property
     def chains_config_path(self) -> Path:

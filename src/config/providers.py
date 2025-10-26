@@ -31,9 +31,7 @@ class ProviderRegistry:
         providers: Dictionary mapping provider_name to ProviderConfig objects
     """
 
-    def __init__(
-        self, config_path: Path | str = Path("config/providers.yaml")
-    ) -> None:
+    def __init__(self, config_path: Path | str = Path("config/providers.yaml")) -> None:
         """Initialize the ProviderRegistry.
 
         Args:
@@ -53,21 +51,15 @@ class ProviderRegistry:
             ProviderConfigError: If the file doesn't exist, can't be parsed, or contains invalid data
         """
         if not self._config_path.exists():
-            raise ProviderConfigError(
-                f"Provider configuration file not found: {self._config_path}"
-            )
+            raise ProviderConfigError(f"Provider configuration file not found: {self._config_path}")
 
         try:
-            with open(self._config_path, "r", encoding="utf-8") as f:
+            with open(self._config_path, encoding="utf-8") as f:
                 data: dict[str, Any] = yaml.safe_load(f)
         except yaml.YAMLError as e:
-            raise ProviderConfigError(
-                f"Invalid YAML in providers configuration: {e}"
-            ) from e
+            raise ProviderConfigError(f"Invalid YAML in providers configuration: {e}") from e
         except Exception as e:
-            raise ProviderConfigError(
-                f"Failed to read providers configuration file: {e}"
-            ) from e
+            raise ProviderConfigError(f"Failed to read providers configuration file: {e}") from e
 
         if not isinstance(data, dict) or "providers" not in data:
             raise ProviderConfigError(
@@ -76,9 +68,7 @@ class ProviderRegistry:
 
         providers_data = data["providers"]
         if not isinstance(providers_data, list):
-            raise ProviderConfigError(
-                "Invalid providers configuration: 'providers' must be a list"
-            )
+            raise ProviderConfigError("Invalid providers configuration: 'providers' must be a list")
 
         for idx, provider_data in enumerate(providers_data):
             try:
@@ -134,9 +124,7 @@ class ProviderRegistry:
             Sorted list of provider names
         """
         if enabled_only:
-            return sorted(
-                name for name, config in self.providers.items() if config.enabled
-            )
+            return sorted(name for name, config in self.providers.items() if config.enabled)
         return sorted(self.providers.keys())
 
     def has_provider(self, provider_name: str) -> bool:

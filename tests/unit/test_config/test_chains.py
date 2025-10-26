@@ -4,7 +4,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-import yaml
 
 from config.chains import ChainConfigError, ChainRegistry
 from config.models import PeriodType
@@ -185,9 +184,7 @@ class TestChainRegistryGetChain:
         assert "not found in registry" in error_message
         assert "Available chains:" in error_message
 
-    def test_get_chain_returns_correct_provider_map(
-        self, valid_chains_file: Path
-    ) -> None:
+    def test_get_chain_returns_correct_provider_map(self, valid_chains_file: Path) -> None:
         """Test that get_chain returns correct provider map."""
         registry = ChainRegistry(config_path=valid_chains_file)
         chain = registry.get_chain("solana-mainnet")
@@ -212,17 +209,13 @@ class TestChainRegistryListChains:
 class TestChainRegistryHasChain:
     """Tests for ChainRegistry.has_chain method."""
 
-    def test_has_chain_returns_true_for_existing_chain(
-        self, valid_chains_file: Path
-    ) -> None:
+    def test_has_chain_returns_true_for_existing_chain(self, valid_chains_file: Path) -> None:
         """Test that has_chain returns True for existing chain."""
         registry = ChainRegistry(config_path=valid_chains_file)
         assert registry.has_chain("solana-mainnet") is True
         assert registry.has_chain("ethereum-mainnet") is True
 
-    def test_has_chain_returns_false_for_nonexistent_chain(
-        self, valid_chains_file: Path
-    ) -> None:
+    def test_has_chain_returns_false_for_nonexistent_chain(self, valid_chains_file: Path) -> None:
         """Test that has_chain returns False for nonexistent chain."""
         registry = ChainRegistry(config_path=valid_chains_file)
         assert registry.has_chain("nonexistent-chain") is False

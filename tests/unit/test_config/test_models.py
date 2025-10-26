@@ -58,9 +58,7 @@ class TestProviderMap:
     def test_empty_rpc_url_fails(self) -> None:
         """Test that empty RPC URL raises validation error."""
         with pytest.raises(ValidationError) as exc_info:
-            ProviderMap(
-                fees="test", mev="test", rewards="test", meta="test", rpc_url=""
-            )
+            ProviderMap(fees="test", mev="test", rewards="test", meta="test", rpc_url="")
         assert "RPC URL cannot be empty" in str(exc_info.value)
 
     def test_missing_fields_fails(self) -> None:
@@ -245,15 +243,11 @@ class TestProviderConfig:
     def test_base_url_validation(self) -> None:
         """Test base URL validation."""
         # Valid HTTPS URL
-        provider_config = ProviderConfig(
-            provider_name="test", base_url="https://example.com"
-        )
+        provider_config = ProviderConfig(provider_name="test", base_url="https://example.com")
         assert provider_config.base_url == "https://example.com"
 
         # Valid HTTP URL
-        provider_config = ProviderConfig(
-            provider_name="test", base_url="http://example.com"
-        )
+        provider_config = ProviderConfig(provider_name="test", base_url="http://example.com")
         assert provider_config.base_url == "http://example.com"
 
         # Empty string becomes None

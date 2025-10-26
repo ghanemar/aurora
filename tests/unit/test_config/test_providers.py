@@ -1,6 +1,5 @@
 """Unit tests for provider configuration registry."""
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -154,9 +153,7 @@ providers:
         provider = registry.get_provider("test_provider")
         assert provider.api_key == "env-api-key"
 
-    def test_yaml_api_key_takes_precedence(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    def test_yaml_api_key_takes_precedence(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Test that YAML API key takes precedence over environment."""
         yaml_content = """
 providers:
@@ -190,9 +187,7 @@ class TestProviderRegistryGetProvider:
         assert provider.timeout == 30
         assert provider.retry_attempts == 3
 
-    def test_get_nonexistent_provider_raises_error(
-        self, valid_providers_file: Path
-    ) -> None:
+    def test_get_nonexistent_provider_raises_error(self, valid_providers_file: Path) -> None:
         """Test that getting nonexistent provider raises ValueError."""
         registry = ProviderRegistry(config_path=valid_providers_file)
         with pytest.raises(ValueError) as exc_info:
@@ -249,9 +244,7 @@ class TestProviderRegistryHasProvider:
 class TestProviderRegistryIsProviderEnabled:
     """Tests for ProviderRegistry.is_provider_enabled method."""
 
-    def test_is_provider_enabled_returns_true_for_enabled(
-        self, valid_providers_file: Path
-    ) -> None:
+    def test_is_provider_enabled_returns_true_for_enabled(self, valid_providers_file: Path) -> None:
         """Test that is_provider_enabled returns True for enabled provider."""
         registry = ProviderRegistry(config_path=valid_providers_file)
         assert registry.is_provider_enabled("solana_beach") is True

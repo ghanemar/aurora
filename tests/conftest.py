@@ -1,20 +1,10 @@
 """Pytest configuration and fixtures for Aurora test suite."""
 
-import sys
-from pathlib import Path
-from typing import AsyncGenerator
+from collections.abc import AsyncGenerator
 
 import pytest_asyncio
+from core.models.base import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-
-from src.core.models.base import BaseModel
-
-# Add src directory to Python path so tests can import modules
-# This runs at conftest import time, before test collection
-src_path = Path(__file__).parent.parent / "src"
-if str(src_path) not in sys.path:
-    sys.path.insert(0, str(src_path))
-
 
 # Test database URL - use a separate test database
 TEST_DATABASE_URL = "postgresql+asyncpg://aurora:aurora_dev@localhost:5432/aurora_test"

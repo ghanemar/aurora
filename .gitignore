@@ -92,3 +92,5 @@ prompt.md
 # MCP Server data
 .serena/
 .claude/
+
+prompts.md

@@ -49,24 +49,18 @@ class ChainRegistry:
             ChainConfigError: If the file doesn't exist, can't be parsed, or contains invalid data
         """
         if not self._config_path.exists():
-            raise ChainConfigError(
-                f"Chain configuration file not found: {self._config_path}"
-            )
+            raise ChainConfigError(f"Chain configuration file not found: {self._config_path}")
 
         try:
-            with open(self._config_path, "r", encoding="utf-8") as f:
+            with open(self._config_path, encoding="utf-8") as f:
                 data: dict[str, Any] = yaml.safe_load(f)
         except yaml.YAMLError as e:
             raise ChainConfigError(f"Invalid YAML in chains configuration: {e}") from e
         except Exception as e:
-            raise ChainConfigError(
-                f"Failed to read chains configuration file: {e}"
-            ) from e
+            raise ChainConfigError(f"Failed to read chains configuration file: {e}") from e
 
         if not isinstance(data, dict) or "chains" not in data:
-            raise ChainConfigError(
-                "Invalid chains configuration: must contain 'chains' key"
-            )
+            raise ChainConfigError("Invalid chains configuration: must contain 'chains' key")
 
         chains_data = data["chains"]
         if not isinstance(chains_data, list):
@@ -81,9 +75,7 @@ class ChainRegistry:
                     )
                 self.chains[chain_config.chain_id] = chain_config
             except ValidationError as e:
-                raise ChainConfigError(
-                    f"Invalid chain configuration at index {idx}: {e}"
-                ) from e
+                raise ChainConfigError(f"Invalid chain configuration at index {idx}: {e}") from e
 
         if not self.chains:
             raise ChainConfigError("No valid chain configurations found")

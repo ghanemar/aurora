@@ -4,13 +4,11 @@ This module provides the base SQLAlchemy model class with standard
 timestamp fields and common functionality.
 """
 
-from datetime import datetime
 from typing import Any
 
-from sqlalchemy import Column, TIMESTAMP
+from db.session import Base as DeclarativeBase
+from sqlalchemy import TIMESTAMP, Column
 from sqlalchemy.sql import func
-
-from src.db.session import Base as DeclarativeBase
 
 
 class BaseModel(DeclarativeBase):
@@ -30,7 +28,7 @@ class BaseModel(DeclarativeBase):
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default=func.now(),
-        comment="Timestamp when record was created"
+        comment="Timestamp when record was created",
     )
 
     updated_at = Column(
@@ -38,7 +36,7 @@ class BaseModel(DeclarativeBase):
         nullable=False,
         server_default=func.now(),
         onupdate=func.now(),
-        comment="Timestamp when record was last updated"
+        comment="Timestamp when record was last updated",
     )
 
     def __repr__(self) -> str:
@@ -58,7 +56,4 @@ class BaseModel(DeclarativeBase):
         Returns:
             dict: Dictionary representation of model with column names as keys
         """
-        return {
-            column.name: getattr(self, column.name)
-            for column in self.__table__.columns
-        }
+        return {column.name: getattr(self, column.name) for column in self.__table__.columns}

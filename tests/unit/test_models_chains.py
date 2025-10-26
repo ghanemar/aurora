@@ -8,21 +8,19 @@ Tests cover:
 - CanonicalValidatorIdentity model and chain-specific fields
 """
 
-import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
-from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from src.core.models import (
+from core.models import (
     CanonicalPeriod,
     CanonicalValidatorIdentity,
     Chain,
     ChainProviderMapping,
     Provider,
 )
+from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestChainModel:
@@ -37,15 +35,13 @@ class TestChainModel:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
 
         # Verify chain was created
-        result = await db_session.execute(
-            select(Chain).where(Chain.chain_id == "solana-mainnet")
-        )
+        result = await db_session.execute(select(Chain).where(Chain.chain_id == "solana-mainnet"))
         saved_chain = result.scalar_one()
 
         assert saved_chain.chain_id == "solana-mainnet"
@@ -67,7 +63,7 @@ class TestChainModel:
             native_unit="wei",
             native_decimals=18,
             finality_lag=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
 
@@ -86,7 +82,7 @@ class TestChainModel:
             native_unit="lamports",
             native_decimals=-1,  # Invalid negative decimals
             finality_lag=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
 
@@ -105,7 +101,7 @@ class TestChainModel:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=-1,  # Invalid negative lag
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
 
@@ -124,7 +120,7 @@ class TestChainModel:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
 
         chain_dict = chain.to_dict()
@@ -144,7 +140,7 @@ class TestChainModel:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
 
         repr_str = repr(chain)
@@ -164,7 +160,7 @@ class TestProviderModel:
             api_version="v1",
             is_enabled=True,
             rate_limit_per_minute=60,
-            timeout_seconds=30
+            timeout_seconds=30,
         )
         db_session.add(provider)
         await db_session.commit()
@@ -190,7 +186,7 @@ class TestProviderModel:
         provider = Provider(
             provider_name="invalid-provider",
             provider_type="INVALID_TYPE",  # Invalid provider type
-            is_enabled=True
+            is_enabled=True,
         )
         db_session.add(provider)
 
@@ -202,19 +198,13 @@ class TestProviderModel:
 
     async def test_provider_unique_name(self, db_session: AsyncSession) -> None:
         """Test provider name must be unique."""
-        provider1 = Provider(
-            provider_name="solanabeach",
-            provider_type="FEES",
-            is_enabled=True
-        )
+        provider1 = Provider(provider_name="solanabeach", provider_type="FEES", is_enabled=True)
         db_session.add(provider1)
         await db_session.commit()
 
         # Try to create another provider with same name
         provider2 = Provider(
-            provider_name="solanabeach",  # Duplicate name
-            provider_type="MEV",
-            is_enabled=True
+            provider_name="solanabeach", provider_type="MEV", is_enabled=True  # Duplicate name
         )
         db_session.add(provider2)
 
@@ -231,7 +221,7 @@ class TestProviderModel:
             base_url=None,
             api_version=None,
             is_enabled=True,
-            rate_limit_per_minute=None
+            rate_limit_per_minute=None,
         )
         db_session.add(provider)
         await db_session.commit()
@@ -259,16 +249,12 @@ class TestChainProviderMapping:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
 
         # Create provider
-        provider = Provider(
-            provider_name="solanabeach",
-            provider_type="FEES",
-            is_enabled=True
-        )
+        provider = Provider(provider_name="solanabeach", provider_type="FEES", is_enabled=True)
         db_session.add(provider)
         await db_session.commit()
 
@@ -278,16 +264,14 @@ class TestChainProviderMapping:
             provider_id=provider.provider_id,
             provider_role="FEES",
             priority=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(mapping)
         await db_session.commit()
 
         # Verify mapping was created
         result = await db_session.execute(
-            select(ChainProviderMapping).where(
-                ChainProviderMapping.chain_id == "solana-mainnet"
-            )
+            select(ChainProviderMapping).where(ChainProviderMapping.chain_id == "solana-mainnet")
         )
         saved_mapping = result.scalar_one()
 
@@ -307,16 +291,12 @@ class TestChainProviderMapping:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
 
         # Create provider
-        provider = Provider(
-            provider_name="solanabeach",
-            provider_type="FEES",
-            is_enabled=True
-        )
+        provider = Provider(provider_name="solanabeach", provider_type="FEES", is_enabled=True)
         db_session.add(provider)
         await db_session.commit()
 
@@ -326,16 +306,14 @@ class TestChainProviderMapping:
             provider_id=provider.provider_id,
             provider_role="FEES",
             priority=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(mapping)
         await db_session.commit()
 
         # Verify relationships
         result = await db_session.execute(
-            select(ChainProviderMapping).where(
-                ChainProviderMapping.chain_id == "solana-mainnet"
-            )
+            select(ChainProviderMapping).where(ChainProviderMapping.chain_id == "solana-mainnet")
         )
         saved_mapping = result.scalar_one()
 
@@ -352,13 +330,9 @@ class TestChainProviderMapping:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
-        provider = Provider(
-            provider_name="solanabeach",
-            provider_type="FEES",
-            is_enabled=True
-        )
+        provider = Provider(provider_name="solanabeach", provider_type="FEES", is_enabled=True)
         db_session.add_all([chain, provider])
         await db_session.commit()
 
@@ -368,7 +342,7 @@ class TestChainProviderMapping:
             provider_id=provider.provider_id,
             provider_role="FEES",
             priority=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(mapping1)
         await db_session.commit()
@@ -379,7 +353,7 @@ class TestChainProviderMapping:
             provider_id=provider.provider_id,
             provider_role="FEES",  # Same role
             priority=1,  # Same priority
-            is_active=True
+            is_active=True,
         )
         db_session.add(mapping2)
 
@@ -399,13 +373,9 @@ class TestChainProviderMapping:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=1,
-            is_active=True
+            is_active=True,
         )
-        provider = Provider(
-            provider_name="test-provider",
-            provider_type="FEES",
-            is_enabled=True
-        )
+        provider = Provider(provider_name="test-provider", provider_type="FEES", is_enabled=True)
         db_session.add_all([chain, provider])
         await db_session.commit()
 
@@ -415,7 +385,7 @@ class TestChainProviderMapping:
             provider_id=provider.provider_id,
             provider_role="FEES",
             priority=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(mapping)
         await db_session.commit()
@@ -426,9 +396,7 @@ class TestChainProviderMapping:
 
         # Verify mapping was also deleted
         result = await db_session.execute(
-            select(ChainProviderMapping).where(
-                ChainProviderMapping.chain_id == "test-chain"
-            )
+            select(ChainProviderMapping).where(ChainProviderMapping.chain_id == "test-chain")
         )
         assert result.scalar_one_or_none() is None
 
@@ -446,7 +414,7 @@ class TestCanonicalPeriod:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
@@ -455,18 +423,16 @@ class TestCanonicalPeriod:
         period = CanonicalPeriod(
             chain_id=chain.chain_id,
             period_identifier="850",
-            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=timezone.utc),
-            is_finalized=False
+            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=UTC),
+            is_finalized=False,
         )
         db_session.add(period)
         await db_session.commit()
 
         # Verify period was created
         result = await db_session.execute(
-            select(CanonicalPeriod).where(
-                CanonicalPeriod.period_identifier == "850"
-            )
+            select(CanonicalPeriod).where(CanonicalPeriod.period_identifier == "850")
         )
         saved_period = result.scalar_one()
 
@@ -485,7 +451,7 @@ class TestCanonicalPeriod:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
@@ -494,23 +460,21 @@ class TestCanonicalPeriod:
         period = CanonicalPeriod(
             chain_id=chain.chain_id,
             period_identifier="850",
-            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=timezone.utc),
-            is_finalized=False
+            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=UTC),
+            is_finalized=False,
         )
         db_session.add(period)
         await db_session.commit()
 
         # Finalize period
         period.is_finalized = True
-        period.finalized_at = datetime.now(timezone.utc)
+        period.finalized_at = datetime.now(UTC)
         await db_session.commit()
 
         # Verify finalization
         result = await db_session.execute(
-            select(CanonicalPeriod).where(
-                CanonicalPeriod.period_identifier == "850"
-            )
+            select(CanonicalPeriod).where(CanonicalPeriod.period_identifier == "850")
         )
         saved_period = result.scalar_one()
 
@@ -527,7 +491,7 @@ class TestCanonicalPeriod:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
@@ -536,9 +500,9 @@ class TestCanonicalPeriod:
         period1 = CanonicalPeriod(
             chain_id=chain.chain_id,
             period_identifier="850",
-            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=timezone.utc),
-            is_finalized=False
+            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=UTC),
+            is_finalized=False,
         )
         db_session.add(period1)
         await db_session.commit()
@@ -547,9 +511,9 @@ class TestCanonicalPeriod:
         period2 = CanonicalPeriod(
             chain_id=chain.chain_id,
             period_identifier="850",  # Duplicate identifier
-            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=timezone.utc),
-            is_finalized=False
+            period_start=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+            period_end=datetime(2024, 1, 3, 0, 0, 0, tzinfo=UTC),
+            is_finalized=False,
         )
         db_session.add(period2)
 
@@ -573,7 +537,7 @@ class TestCanonicalValidatorIdentity:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
@@ -586,7 +550,7 @@ class TestCanonicalValidatorIdentity:
             node_pubkey="node_pubkey_456",
             identity_pubkey="identity_pubkey_789",
             display_name="Test Validator",
-            is_active=True
+            is_active=True,
         )
         db_session.add(identity)
         await db_session.commit()
@@ -618,7 +582,7 @@ class TestCanonicalValidatorIdentity:
             native_unit="wei",
             native_decimals=18,
             finality_lag=1,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
@@ -629,7 +593,7 @@ class TestCanonicalValidatorIdentity:
             validator_key="0x123...abc",
             fee_recipient="0x123...abc",
             display_name="Ethereum Validator",
-            is_active=True
+            is_active=True,
         )
         db_session.add(identity)
         await db_session.commit()
@@ -658,7 +622,7 @@ class TestCanonicalValidatorIdentity:
             native_unit="lamports",
             native_decimals=9,
             finality_lag=2,
-            is_active=True
+            is_active=True,
         )
         db_session.add(chain)
         await db_session.commit()
@@ -668,7 +632,7 @@ class TestCanonicalValidatorIdentity:
             chain_id=chain.chain_id,
             validator_key="vote_pubkey_123",
             vote_pubkey="vote_pubkey_123",
-            is_active=True
+            is_active=True,
         )
         db_session.add(identity1)
         await db_session.commit()
@@ -678,7 +642,7 @@ class TestCanonicalValidatorIdentity:
             chain_id=chain.chain_id,
             validator_key="vote_pubkey_123",  # Duplicate key
             vote_pubkey="vote_pubkey_123",
-            is_active=True
+            is_active=True,
         )
         db_session.add(identity2)
 
