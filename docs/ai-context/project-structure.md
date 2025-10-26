@@ -74,13 +74,14 @@ This document uses status markers to distinguish between implemented and planned
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
 - ✅ Docker Compose with PostgreSQL 15 and Redis 7
-- ✅ ORM models (`src/core/models/`) for chain registry and configuration
-- ✅ Test framework with 78 passing tests and comprehensive coverage
+- ✅ ORM models (`src/core/models/`) for chain registry, configuration, and staging layer
+- ✅ Test framework with 89 passing tests and 75% coverage
 - ✅ Type checking with mypy, linting with ruff and black
+- ✅ Security infrastructure (`src/core/security.py`, `src/core/logging.py`)
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (ORM models)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models)
 
-**Next Phase**: Database migrations with Alembic, staging layer models (check GitHub issues for current work)
+**Next Phase**: Canonical layer models (Issue #8), then database migrations with Alembic (Issue #10)
 
 ---
 
@@ -127,7 +128,8 @@ aurora/
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ base.py              # Base model with common timestamp fields
 │   │   │   ├── ✅ chains.py            # Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity
-│   │   │   └── 📋 ... (staging.py, canonical.py, computation.py, agreements.py, users.py)
+│   │   │   ├── ✅ staging.py           # IngestionRun, StagingPayload, IngestionStatus, DataType
+│   │   │   └── 📋 ... (canonical.py, computation.py, agreements.py, users.py)
 │   │   │
 │   │   ├── 📋 schemas/                 # Pydantic request/response schemas (create when implementing API)
 │   │   │   └── 📋 ... (chains.py, validators.py, commissions.py, agreements.py, auth.py, common.py)
@@ -162,7 +164,8 @@ aurora/
 │   │   │   ├── ✅ test_chains.py       # Chain registry tests
 │   │   │   ├── ✅ test_models.py       # Configuration model tests
 │   │   │   └── ✅ test_providers.py    # Provider registry tests
-│   │   └── ✅ test_models_chains.py    # ORM model tests for chain registry
+│   │   ├── ✅ test_models_chains.py    # ORM model tests for chain registry
+│   │   └── ✅ test_models_staging.py   # ORM model tests for staging layer
 │   ├── 📋 integration/                 # Integration tests (create when implementing API)
 │   └── 📋 fixtures/                    # Shared test data (create as needed)
 │
@@ -305,26 +308,33 @@ These directories currently exist in the codebase with working implementations:
 **Current State**: Fully implemented with ORM models integrated
 
 #### `/src/core/models/` ✅
-**Purpose**: SQLAlchemy ORM models representing database tables for chain registry and configuration
+**Purpose**: SQLAlchemy ORM models representing database tables across all data layers
 
 **Files**:
 - `base.py` - Base model with common timestamp fields (created_at, updated_at)
-- `chains.py` - Chain registry models:
+- `chains.py` - Chain registry and configuration models:
   - Chain - Blockchain network definitions (chain_id, name, period_type, native_unit, finality_lag)
   - Provider - External data provider configurations (provider_name, provider_type, base_url, rate_limit)
   - ChainProviderMapping - Chain-to-provider relationships with role-based priorities
   - CanonicalPeriod - Period definitions with finalization tracking
   - CanonicalValidatorIdentity - Chain-specific validator identities (Solana/Ethereum support)
+- `staging.py` - Staging layer models for data ingestion:
+  - IngestionRun - Job execution tracking with status, timestamps, error handling (run_id, chain_id, status, records_fetched/staged)
+  - StagingPayload - Raw provider data storage with JSONB payload and full traceability (payload_id, run_id, validator_key, raw_payload, response_hash)
+  - IngestionStatus - Enum (PENDING, RUNNING, SUCCESS, FAILED, PARTIAL)
+  - DataType - Enum (FEES, MEV, REWARDS, META)
 
 **Features**:
 - All check constraints, indexes, and foreign keys from database schema
-- Bidirectional relationships between models
+- Bidirectional relationships between models across layers
 - Cascade delete behavior for referential integrity
+- GIN index on JSONB payload for efficient querying
+- TYPE_CHECKING imports to avoid circular dependencies
 - Support for both Solana (vote_pubkey, node_pubkey) and Ethereum (fee_recipient) validators
 
-**Testing**: 20 comprehensive unit tests covering model creation, constraints, relationships, and cascade behavior
+**Testing**: 31 comprehensive unit tests (20 chain registry + 11 staging layer) covering model creation, constraints, relationships, and cascade behavior
 
-**Current State**: Configuration layer models implemented. Staging, canonical, computation, and user models pending.
+**Current State**: Chain registry and staging layer implemented. Canonical, computation, and user models pending.
 
 ---
 
@@ -534,15 +544,20 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.3
+**Document Version**: 1.4
 **Last Updated**: 2025-10-26
 **Status**: Active
-**Recent Changes (v1.3 - 2025-10-26)**:
-- Added ORM models implementation (`src/core/models/`) for chain registry and configuration
-- Updated file tree to reflect new models directory structure
-- Added comprehensive test suite (78 tests total, 20 for ORM models)
-- Updated Current Implementation Status with completed issue #6
+**Recent Changes (v1.4 - 2025-10-26)**:
+- Added staging layer ORM models (`src/core/models/staging.py`) with IngestionRun, StagingPayload, and enums
+- Updated file tree with staging.py and test_models_staging.py
+- Expanded test suite to 89 tests (31 ORM model tests, 75% coverage)
+- Updated Current Implementation Status with completed Issue #7
+- Documented bidirectional relationships between staging and chain registry models
+
+**Previous Changes (v1.3 - 2025-10-26)**:
+- Added ORM models implementation for chain registry and configuration
 - Added detailed documentation for Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity models
+- Comprehensive test suite with 78 tests total
 
 **Previous Changes (v1.2 - 2025-10-24)**:
 - Added status legend system (✅ Implemented / 📋 Planned)

@@ -9,6 +9,7 @@ This module defines SQLAlchemy ORM models for:
 """
 
 import uuid
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     TIMESTAMP,
@@ -25,6 +26,9 @@ from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .base import BaseModel
+
+if TYPE_CHECKING:
+    from .staging import IngestionRun, StagingPayload
 
 
 class Chain(BaseModel):
@@ -92,6 +96,14 @@ class Chain(BaseModel):
 
     validator_identities: Mapped[list["CanonicalValidatorIdentity"]] = relationship(
         "CanonicalValidatorIdentity", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    ingestion_runs: Mapped[list["IngestionRun"]] = relationship(
+        "IngestionRun", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    staging_payloads: Mapped[list["StagingPayload"]] = relationship(
+        "StagingPayload", back_populates="chain", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -168,6 +180,10 @@ class Provider(BaseModel):
     # Relationships
     chain_mappings: Mapped[list["ChainProviderMapping"]] = relationship(
         "ChainProviderMapping", back_populates="provider", cascade="all, delete-orphan"
+    )
+
+    staging_payloads: Mapped[list["StagingPayload"]] = relationship(
+        "StagingPayload", back_populates="provider", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -311,6 +327,14 @@ class CanonicalPeriod(BaseModel):
 
     # Relationships
     chain: Mapped["Chain"] = relationship("Chain", back_populates="canonical_periods")
+
+    ingestion_runs: Mapped[list["IngestionRun"]] = relationship(
+        "IngestionRun", back_populates="period"
+    )
+
+    staging_payloads: Mapped[list["StagingPayload"]] = relationship(
+        "StagingPayload", back_populates="period", cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("chain_id", "period_identifier", name="uq_canonical_periods_chain_period"),

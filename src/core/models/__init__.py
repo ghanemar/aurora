@@ -3,6 +3,7 @@
 This package exports all database models for:
 - Configuration & Registry: Chain, Provider, ChainProviderMapping
 - Canonical Layer: CanonicalPeriod, CanonicalValidatorIdentity
+- Staging Layer: IngestionRun, StagingPayload, IngestionStatus, DataType
 - Base Model: BaseModel with common timestamp fields
 
 Example:
@@ -28,6 +29,12 @@ from .chains import (
     ChainProviderMapping,
     Provider,
 )
+from .staging import (
+    DataType,
+    IngestionRun,
+    IngestionStatus,
+    StagingPayload,
+)
 
 __all__ = [
     # Base
@@ -39,4 +46,9 @@ __all__ = [
     # Canonical Layer
     "CanonicalPeriod",
     "CanonicalValidatorIdentity",
+    # Staging Layer
+    "IngestionRun",
+    "StagingPayload",
+    "IngestionStatus",
+    "DataType",
 ]
