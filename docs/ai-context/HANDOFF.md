@@ -14,9 +14,56 @@ This template helps maintain:
 ## Current Session Status (2025-10-27)
 
 ### Active Tasks
-**Ready for Issue #9: Computation Layer ORM Models** (recommended next task)
+**Ready for Issue #11: Data Ingestion Adapters** (recommended next task)
 
-### Recent Completion: Issue #8 - Canonical Layer ORM Models
+### Recent Completions
+
+#### Issue #10 - Alembic Migrations (COMPLETED 2025-10-27)
+
+**What was completed:**
+- ✅ Alembic initialized with async SQLAlchemy support
+- ✅ Initial migration generated for all 18 ORM models (chains, staging, canonical, computation)
+- ✅ Migration configured with Black auto-formatting hook
+- ✅ PostgreSQL ENUM type cleanup in downgrade function
+- ✅ Migration tested: upgrade → downgrade → upgrade cycle
+- ✅ Migration management script created (`scripts/migrate.sh`)
+- ✅ Comprehensive migration guide (`docs/migration-guide.md`)
+- ✅ All quality gates passing: mypy ✅ ruff ✅ black ✅
+
+**Key features:**
+- Async SQLAlchemy engine support via `run_sync()`
+- Auto-detection of model changes for future migrations
+- Environment variable configuration (DATABASE_URL from settings)
+- Proper handling of PostgreSQL ENUM types in downgrades
+- Multi-environment support (dev, staging, prod)
+- Management script with upgrade, downgrade, history, current, create, reset commands
+
+**Database state:**
+- 18 tables created: chains, providers, chain_provider_mappings, canonical_periods, canonical_validator_identities, partners, agreements, agreement_versions, agreement_rules, ingestion_runs, staging_payloads, canonical_validator_fees, canonical_validator_mev, canonical_stake_rewards, canonical_validator_meta, validator_pnl, partner_commission_lines, partner_commission_statements
+- 4 ENUM types: ingestionstatus, datatype, agreementstatus, revenuecomponent, attributionmethod, statementstatus
+- Current revision: cec3a80e61a4 (head)
+
+#### Issue #9 - Computation Layer ORM Models (COMPLETED 2025-10-27)
+
+**What was completed:**
+- ✅ 7 models: ValidatorPnL, Partners, Agreements, AgreementVersions, AgreementRules, PartnerCommissionLines, PartnerCommissionStatements
+- ✅ 4 enums: AgreementStatus, RevenueComponent, AttributionMethod, StatementStatus
+- ✅ Bidirectional relationships with Chain and CanonicalPeriod models
+- ✅ 22 comprehensive unit tests with 100% code coverage for computation.py
+- ✅ All quality gates passing: mypy ✅ ruff ✅ black ✅ pytest (122 tests)
+- ✅ Test coverage improved to 84%
+- ✅ Fixed SQLAlchemy reserved name (`metadata` → `statement_metadata`)
+- ✅ Proper cascade delete handling for Agreement relationships
+
+**Key design patterns:**
+- NUMERIC(38,18) for all revenue amounts
+- CASCADE delete for chain/period (data lifecycle)
+- RESTRICT delete for partner/agreement (data protection)
+- Composite foreign keys for agreement versioning
+- Check constraints: positive amounts, valid rate ranges (0-10000 bps)
+- Unique constraints: preventing duplicate P&L records and commission statements
+
+#### Issue #8 - Canonical Layer ORM Models (COMPLETED 2025-10-26)
 
 **What was completed:**
 - ✅ 4 canonical models: CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
@@ -37,32 +84,35 @@ This template helps maintain:
 
 ### Pending Tasks
 
-**Recommended Next: Issue #9 - Computation Layer ORM Models**
+**Recommended Next: Issue #11 - Data Ingestion Adapters**
 
-Why Issue #9 makes sense now:
-- Data flow progression: Ingestion → Staging → Canonical → **Computation**
-- Natural next step after canonical layer completion
-- Completes the data layer before implementing migrations
-- Pattern well-established from Issues #6, #7, and #8
-- Medium complexity (3-5 days effort) - validator P&L, partner commissions, agreements
+Why Issue #11 makes sense now:
+- Complete data layer ready: ✅ chains ✅ staging ✅ canonical ✅ computation
+- Database migrations in place: ✅ Alembic configured
+- Data flow progression: **Ingestion** → Staging → Canonical → Computation
+- Core infrastructure established for adapter development
+- Medium complexity (5-7 days effort) - blockchain provider adapters
 
-**Models to implement** (see `docs/database-schema.md` Section 4):
-- `ValidatorPnL` - Validator profit & loss per period
-- `PartnerAgreement` - Partnership commission contracts
-- `PartnerCommission` - Commission calculations per validator/period
+**Adapters to implement** (see GitHub Issues #11-14):
+- Issue #11: Solana validator data adapter (epoch rewards, fees, MEV)
+- Issue #12: Ethereum validator data adapter (execution fees, MEV)
+- Issue #13: Provider API client abstraction layer
+- Issue #14: Ingestion orchestration and error handling
 
 **Other Open Issues:**
-- Issue #10: Alembic migrations (ready after computation models complete)
 - Issues #4-5: Authentication & RBAC (can be done anytime)
-- Issues #11-14: Adapters (requires staging models - ✅ ready)
-- Issues #15-17: Services & API (requires complete data layer)
+- Issues #15-17: Services & API (requires adapters for full functionality)
 
 ## Completed Work Summary
 
-### Data Layer (Issues #6, #7, #8)
+### Data Layer (Issues #6, #7, #8, #9)
 - ✅ **Issue #6**: Chain registry models (Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity)
 - ✅ **Issue #7**: Staging layer models (IngestionRun, StagingPayload + enums)
 - ✅ **Issue #8**: Canonical layer models (CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta)
+- ✅ **Issue #9**: Computation layer models (ValidatorPnL, Partners, Agreements, AgreementVersions, AgreementRules, PartnerCommissionLines, PartnerCommissionStatements)
+
+### Database Migrations (Issue #10)
+- ✅ **Issue #10**: Alembic migrations with async SQLAlchemy support, management scripts, and comprehensive documentation
 
 ### Infrastructure (Issue #3 + Security)
 - ✅ **Issue #3**: PostgreSQL + Redis Docker Compose setup
@@ -111,22 +161,33 @@ Why Issue #9 makes sense now:
 - `tests/conftest.py` - Async database test fixtures
 
 ### Reference Patterns
-When implementing Issue #9 (computation models), follow the established pattern:
-1. Review `docs/database-schema.md` Section 4 for schema specification
-2. Use `src/core/models/canonical.py` as reference for model structure
-3. Use `tests/unit/test_models_canonical.py` as reference for test patterns
-4. Use NUMERIC(38,18) for all amount fields
-5. Include source attribution fields for traceability
-6. Add bidirectional relationships to related models
-7. Implement all check constraints, unique constraints, and indexes
-8. Write comprehensive tests with 100% code coverage
+When implementing Issue #11 (data ingestion adapters), follow the established patterns:
+1. Review data provider APIs and authentication requirements
+2. Design adapter interface for provider-agnostic data ingestion
+3. Implement async HTTP clients with retry logic and rate limiting
+4. Use `src/core/models/staging.py` for data storage patterns
+5. Implement data transformation: provider format → staging format
+6. Add comprehensive error handling and logging
+7. Write unit tests with mocked HTTP responses
+8. Write integration tests with real API calls (optional flag)
 9. Run all quality gates: mypy, ruff, black, pytest
+
+**For ORM-related work**, reference the established model patterns:
+1. Review `docs/database-schema.md` for schema specifications
+2. Use existing models in `src/core/models/` as reference
+3. Use NUMERIC(38,18) for all blockchain amount fields
+4. Include source attribution fields for traceability
+5. Add bidirectional relationships to related models
+6. Implement all constraints (check, unique, foreign key)
+7. Write comprehensive tests with 100% code coverage
+8. Create migrations: `./scripts/migrate.sh create "message"`
+9. Test migrations: upgrade → downgrade → upgrade
 
 ### Development Environment Status
 
 **Test Suite:**
-- 100 passing tests (42 ORM model tests + 58 config/provider tests)
-- 79% overall coverage
+- 122 passing tests (64 ORM model tests + 58 config/provider tests)
+- 84% overall coverage
 - All quality gates passing: mypy ✅ ruff ✅ black ✅ pytest ✅
 
 **Database:**
@@ -134,22 +195,31 @@ When implementing Issue #9 (computation models), follow the established pattern:
 - Redis 7-alpine (localhost:6379, container: aurora-redis)
 - Async SQLAlchemy session factory ready
 - Connection pooling: pool_size=10, max_overflow=20
+- Alembic migrations: revision cec3a80e61a4 (head)
+- 18 tables + 4 ENUM types created
 
 **ORM Models Status:**
 - ✅ Chain registry (Issue #6)
 - ✅ Staging layer (Issue #7)
 - ✅ Canonical layer (Issue #8)
-- 📋 Computation layer (Issue #9 - next)
+- ✅ Computation layer (Issue #9)
 - 📋 User/auth models (Issues #4-5)
-- 📋 Alembic migrations (Issue #10)
+
+**Migration Status:**
+- ✅ Alembic configured (Issue #10)
+- ✅ Initial migration created and tested
+- ✅ Management scripts ready (`./scripts/migrate.sh`)
+- ✅ Documentation complete (`docs/migration-guide.md`)
 
 ---
 
 **Session End Status (2025-10-27)**:
-- ✅ GitHub Issue #8 completed (canonical layer ORM models)
-- ✅ 100 tests passing, 79% coverage
-- ✅ 100% code coverage for canonical.py module
-- ✅ All canonical models follow established patterns
-- ✅ Full data lineage: staging → canonical with source attribution
-- 🎯 **Ready for Issue #9**: Computation layer ORM models (validator P&L, partner commissions, agreements)
+- ✅ GitHub Issue #9 completed (computation layer ORM models)
+- ✅ GitHub Issue #10 completed (Alembic migrations)
+- ✅ 122 tests passing, 84% coverage
+- ✅ 100% code coverage for all model modules
+- ✅ Complete data layer: chains → staging → canonical → computation
+- ✅ Database migrations operational with management utilities
+- ✅ Migration guide and best practices documented
+- 🎯 **Ready for Issue #11**: Data ingestion adapters (Solana, Ethereum)
 - 📚 Documentation updated, handoff prepared for next session
