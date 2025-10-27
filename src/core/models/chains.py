@@ -28,6 +28,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import BaseModel
 
 if TYPE_CHECKING:
+    from .canonical import (
+        CanonicalStakeRewards,
+        CanonicalValidatorFees,
+        CanonicalValidatorMeta,
+        CanonicalValidatorMEV,
+    )
     from .staging import IngestionRun, StagingPayload
 
 
@@ -104,6 +110,22 @@ class Chain(BaseModel):
 
     staging_payloads: Mapped[list["StagingPayload"]] = relationship(
         "StagingPayload", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    canonical_fees: Mapped[list["CanonicalValidatorFees"]] = relationship(
+        "CanonicalValidatorFees", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    canonical_mev: Mapped[list["CanonicalValidatorMEV"]] = relationship(
+        "CanonicalValidatorMEV", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    canonical_rewards: Mapped[list["CanonicalStakeRewards"]] = relationship(
+        "CanonicalStakeRewards", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    canonical_meta: Mapped[list["CanonicalValidatorMeta"]] = relationship(
+        "CanonicalValidatorMeta", back_populates="chain", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -334,6 +356,22 @@ class CanonicalPeriod(BaseModel):
 
     staging_payloads: Mapped[list["StagingPayload"]] = relationship(
         "StagingPayload", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    canonical_fees: Mapped[list["CanonicalValidatorFees"]] = relationship(
+        "CanonicalValidatorFees", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    canonical_mev: Mapped[list["CanonicalValidatorMEV"]] = relationship(
+        "CanonicalValidatorMEV", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    canonical_rewards: Mapped[list["CanonicalStakeRewards"]] = relationship(
+        "CanonicalStakeRewards", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    canonical_meta: Mapped[list["CanonicalValidatorMeta"]] = relationship(
+        "CanonicalValidatorMeta", back_populates="period", cascade="all, delete-orphan"
     )
 
     __table_args__ = (

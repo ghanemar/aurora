@@ -69,19 +69,19 @@ This document uses status markers to distinguish between implemented and planned
 
 ## Current Implementation Status
 
-**Completed Setup (as of 2025-10-26)**:
+**Completed Setup (as of 2025-10-27)**:
 - ✅ Python 3.11+ project with Poetry dependency management
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
 - ✅ Docker Compose with PostgreSQL 15 and Redis 7
-- ✅ ORM models (`src/core/models/`) for chain registry, configuration, and staging layer
-- ✅ Test framework with 89 passing tests and 75% coverage
+- ✅ ORM models (`src/core/models/`) for chain registry, staging layer, and canonical layer
+- ✅ Test framework with 100 passing tests and 79% coverage
 - ✅ Type checking with mypy, linting with ruff and black
 - ✅ Security infrastructure (`src/core/security.py`, `src/core/logging.py`)
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models)
 
-**Next Phase**: Canonical layer models (Issue #8), then database migrations with Alembic (Issue #10)
+**Next Phase**: Computation layer models (Issue #9), then database migrations with Alembic (Issue #10)
 
 ---
 
@@ -129,7 +129,8 @@ aurora/
 │   │   │   ├── ✅ base.py              # Base model with common timestamp fields
 │   │   │   ├── ✅ chains.py            # Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity
 │   │   │   ├── ✅ staging.py           # IngestionRun, StagingPayload, IngestionStatus, DataType
-│   │   │   └── 📋 ... (canonical.py, computation.py, agreements.py, users.py)
+│   │   │   ├── ✅ canonical.py         # CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
+│   │   │   └── 📋 ... (computation.py, agreements.py, users.py)
 │   │   │
 │   │   ├── 📋 schemas/                 # Pydantic request/response schemas (create when implementing API)
 │   │   │   └── 📋 ... (chains.py, validators.py, commissions.py, agreements.py, auth.py, common.py)
@@ -165,7 +166,8 @@ aurora/
 │   │   │   ├── ✅ test_models.py       # Configuration model tests
 │   │   │   └── ✅ test_providers.py    # Provider registry tests
 │   │   ├── ✅ test_models_chains.py    # ORM model tests for chain registry
-│   │   └── ✅ test_models_staging.py   # ORM model tests for staging layer
+│   │   ├── ✅ test_models_staging.py   # ORM model tests for staging layer
+│   │   └── ✅ test_models_canonical.py # ORM model tests for canonical layer
 │   ├── 📋 integration/                 # Integration tests (create when implementing API)
 │   └── 📋 fixtures/                    # Shared test data (create as needed)
 │
@@ -323,18 +325,26 @@ These directories currently exist in the codebase with working implementations:
   - StagingPayload - Raw provider data storage with JSONB payload and full traceability (payload_id, run_id, validator_key, raw_payload, response_hash)
   - IngestionStatus - Enum (PENDING, RUNNING, SUCCESS, FAILED, PARTIAL)
   - DataType - Enum (FEES, MEV, REWARDS, META)
+- `canonical.py` - Canonical layer models for normalized validator data:
+  - CanonicalValidatorFees - Normalized execution fees per validator/period with NUMERIC(38,18) precision (fee_id, chain_id, period_id, validator_key, total_fees_native, fee_count, source traceability)
+  - CanonicalValidatorMEV - Normalized MEV tips per validator/period with full traceability (mev_id, total_mev_native, tip_count, source attribution)
+  - CanonicalStakeRewards - Normalized staking rewards supporting both aggregated and per-staker detail (reward_id, staker_address nullable, rewards_native, commission_native)
+  - CanonicalValidatorMeta - Validator metadata per period (meta_id, commission_rate_bps 0-10000, is_mev_enabled, total/active stake, delegator_count, uptime_percentage 0-100)
 
 **Features**:
 - All check constraints, indexes, and foreign keys from database schema
 - Bidirectional relationships between models across layers
-- Cascade delete behavior for referential integrity
-- GIN index on JSONB payload for efficient querying
+- Cascade delete behavior for referential integrity (CASCADE for chain/period, RESTRICT for provider/staging)
+- GIN index on JSONB payload for efficient querying (staging layer)
+- NUMERIC(38,18) for blockchain-native amounts (lamports, wei) in canonical layer
+- Unique constraints preventing duplicate canonical data per (chain_id, period_id, validator_key)
 - TYPE_CHECKING imports to avoid circular dependencies
 - Support for both Solana (vote_pubkey, node_pubkey) and Ethereum (fee_recipient) validators
+- Full audit trail with source_provider_id and source_payload_id in canonical models
 
-**Testing**: 31 comprehensive unit tests (20 chain registry + 11 staging layer) covering model creation, constraints, relationships, and cascade behavior
+**Testing**: 42 comprehensive unit tests (20 chain registry + 11 staging layer + 11 canonical layer) with 100% code coverage for canonical.py, covering model creation, NUMERIC precision, constraints, relationships, and unique constraint enforcement
 
-**Current State**: Chain registry and staging layer implemented. Canonical, computation, and user models pending.
+**Current State**: Chain registry, staging layer, and canonical layer implemented. Computation and user models pending.
 
 ---
 
@@ -544,25 +554,20 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.4
-**Last Updated**: 2025-10-26
+**Document Version**: 1.5
+**Last Updated**: 2025-10-27
 **Status**: Active
-**Recent Changes (v1.4 - 2025-10-26)**:
+**Recent Changes (v1.5 - 2025-10-27)**:
+- Added canonical layer ORM models (`src/core/models/canonical.py`) with CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
+- Updated file tree with canonical.py and test_models_canonical.py
+- Expanded test suite to 100 tests (42 ORM model tests, 79% coverage)
+- Updated Current Implementation Status with completed Issue #8
+- Documented NUMERIC(38,18) precision for blockchain-native amounts, unique constraints, and source traceability patterns
+- Documented bidirectional relationships between canonical, staging, and chain registry models
+
+**Previous Changes (v1.4 - 2025-10-26)**:
 - Added staging layer ORM models (`src/core/models/staging.py`) with IngestionRun, StagingPayload, and enums
 - Updated file tree with staging.py and test_models_staging.py
 - Expanded test suite to 89 tests (31 ORM model tests, 75% coverage)
 - Updated Current Implementation Status with completed Issue #7
 - Documented bidirectional relationships between staging and chain registry models
-
-**Previous Changes (v1.3 - 2025-10-26)**:
-- Added ORM models implementation for chain registry and configuration
-- Added detailed documentation for Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity models
-- Comprehensive test suite with 78 tests total
-
-**Previous Changes (v1.2 - 2025-10-24)**:
-- Added status legend system (✅ Implemented / 📋 Planned)
-- Added Current Implementation Status section
-- Added comprehensive AI Agent Guidance section with architectural layers
-- Refactored file tree with status markers distinguishing reality from plans
-- Split Key Directories into Implemented vs Planned sections
-- YAGNI-compliant: "Create as needed" philosophy documented

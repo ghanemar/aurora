@@ -25,6 +25,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from .base import BaseModel
 
 if TYPE_CHECKING:
+    from .canonical import (
+        CanonicalStakeRewards,
+        CanonicalValidatorFees,
+        CanonicalValidatorMeta,
+        CanonicalValidatorMEV,
+    )
     from .chains import CanonicalPeriod, Chain, Provider
 
 
@@ -281,6 +287,30 @@ class StagingPayload(BaseModel):
     )
 
     provider: Mapped["Provider"] = relationship("Provider", back_populates="staging_payloads")
+
+    canonical_fees: Mapped[list["CanonicalValidatorFees"]] = relationship(
+        "CanonicalValidatorFees",
+        foreign_keys="CanonicalValidatorFees.source_payload_id",
+        back_populates="source_payload",
+    )
+
+    canonical_mev: Mapped[list["CanonicalValidatorMEV"]] = relationship(
+        "CanonicalValidatorMEV",
+        foreign_keys="CanonicalValidatorMEV.source_payload_id",
+        back_populates="source_payload",
+    )
+
+    canonical_rewards: Mapped[list["CanonicalStakeRewards"]] = relationship(
+        "CanonicalStakeRewards",
+        foreign_keys="CanonicalStakeRewards.source_payload_id",
+        back_populates="source_payload",
+    )
+
+    canonical_meta: Mapped[list["CanonicalValidatorMeta"]] = relationship(
+        "CanonicalValidatorMeta",
+        foreign_keys="CanonicalValidatorMeta.source_payload_id",
+        back_populates="source_payload",
+    )
 
     __table_args__ = (
         Index("idx_staging_payloads_run", "run_id"),
