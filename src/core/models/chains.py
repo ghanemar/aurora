@@ -34,6 +34,12 @@ if TYPE_CHECKING:
         CanonicalValidatorMeta,
         CanonicalValidatorMEV,
     )
+    from .computation import (
+        AgreementRules,
+        PartnerCommissionLines,
+        PartnerCommissionStatements,
+        ValidatorPnL,
+    )
     from .staging import IngestionRun, StagingPayload
 
 
@@ -126,6 +132,22 @@ class Chain(BaseModel):
 
     canonical_meta: Mapped[list["CanonicalValidatorMeta"]] = relationship(
         "CanonicalValidatorMeta", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    validator_pnl: Mapped[list["ValidatorPnL"]] = relationship(
+        "ValidatorPnL", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    agreement_rules: Mapped[list["AgreementRules"]] = relationship(
+        "AgreementRules", back_populates="chain"
+    )
+
+    partner_commission_lines: Mapped[list["PartnerCommissionLines"]] = relationship(
+        "PartnerCommissionLines", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    partner_commission_statements: Mapped[list["PartnerCommissionStatements"]] = relationship(
+        "PartnerCommissionStatements", back_populates="chain", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -372,6 +394,18 @@ class CanonicalPeriod(BaseModel):
 
     canonical_meta: Mapped[list["CanonicalValidatorMeta"]] = relationship(
         "CanonicalValidatorMeta", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    validator_pnl: Mapped[list["ValidatorPnL"]] = relationship(
+        "ValidatorPnL", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    partner_commission_lines: Mapped[list["PartnerCommissionLines"]] = relationship(
+        "PartnerCommissionLines", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    partner_commission_statements: Mapped[list["PartnerCommissionStatements"]] = relationship(
+        "PartnerCommissionStatements", back_populates="period", cascade="all, delete-orphan"
     )
 
     __table_args__ = (

@@ -5,6 +5,7 @@ This package exports all database models for:
 - Periods & Identity: CanonicalPeriod, CanonicalValidatorIdentity
 - Staging Layer: IngestionRun, StagingPayload, IngestionStatus, DataType
 - Canonical Layer: CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
+- Computation Layer: ValidatorPnL, Partners, Agreements, AgreementVersions, AgreementRules, PartnerCommissionLines, PartnerCommissionStatements
 - Base Model: BaseModel with common timestamp fields
 
 Example:
@@ -36,6 +37,19 @@ from .chains import (
     ChainProviderMapping,
     Provider,
 )
+from .computation import (
+    AgreementRules,
+    Agreements,
+    AgreementStatus,
+    AgreementVersions,
+    AttributionMethod,
+    PartnerCommissionLines,
+    PartnerCommissionStatements,
+    Partners,
+    RevenueComponent,
+    StatementStatus,
+    ValidatorPnL,
+)
 from .staging import (
     DataType,
     IngestionRun,
@@ -63,4 +77,17 @@ __all__ = [
     "CanonicalValidatorMEV",
     "CanonicalStakeRewards",
     "CanonicalValidatorMeta",
+    # Computation Layer
+    "ValidatorPnL",
+    "Partners",
+    "Agreements",
+    "AgreementVersions",
+    "AgreementRules",
+    "PartnerCommissionLines",
+    "PartnerCommissionStatements",
+    # Computation Enums
+    "AgreementStatus",
+    "RevenueComponent",
+    "AttributionMethod",
+    "StatementStatus",
 ]
