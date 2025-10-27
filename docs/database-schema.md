@@ -1,5 +1,7 @@
 # Database Schema - Multi-Chain Validator P&L & Partner Commissions
 
+> **Note**: This document defines the schema specification. For database migration workflows, see the [Migration Guide](migration-guide.md).
+
 ## Schema Overview
 
 This document defines the complete PostgreSQL database schema for the Multi-Chain Validator P&L & Partner Commissions platform. The schema is organized into five logical groups:

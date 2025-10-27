@@ -21,6 +21,8 @@ This hierarchy allows AI agents to load targeted context efficiently while maint
 
 - **[Master Context](/CLAUDE.md)** - *Essential for every session.* Coding standards, security requirements, MCP server integration patterns, and development protocols
 - **[Project Structure](/docs/ai-context/project-structure.md)** - *REQUIRED reading.* Complete technology stack, file tree, and system architecture. Must be attached to Gemini consultations
+- **[Database Schema](/docs/database-schema.md)** - *Data model reference.* Complete database schema specification with table definitions, relationships, and constraints
+- **[Migration Guide](/docs/migration-guide.md)** - *Database workflows.* Alembic migration management, best practices, troubleshooting, and multi-environment deployment
 - **[System Integration](/docs/ai-context/system-integration.md)** - *For cross-component work.* Communication patterns, data flow, testing strategies, and performance optimization
 - **[Deployment Infrastructure](/docs/ai-context/deployment-infrastructure.md)** - *Infrastructure patterns.* Containerization, monitoring, CI/CD workflows, and scaling strategies
 - **[Task Management](/docs/ai-context/handoff.md)** - *Session continuity.* Current tasks, documentation system progress, and next session goals
