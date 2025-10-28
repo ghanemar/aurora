@@ -1,0 +1,104 @@
+{
+  "epochs_response": {
+    "epochs": [
+      {
+        "epoch": 500,
+        "status": "finalized",
+        "start_time": 1704067200,
+        "end_time": 1704153600,
+        "slot_range": [216000000, 216432000],
+        "total_blocks": 432000
+      },
+      {
+        "epoch": 501,
+        "status": "finalized",
+        "start_time": 1704153600,
+        "end_time": 1704240000,
+        "slot_range": [216432000, 216864000],
+        "total_blocks": 432000
+      },
+      {
+        "epoch": 502,
+        "status": "current",
+        "start_time": 1704240000,
+        "end_time": null,
+        "slot_range": [216864000, null],
+        "total_blocks": 0
+      }
+    ]
+  },
+  "validator_fees_response": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "total_fees": 5000000000,
+    "transaction_count": 1250
+  },
+  "validator_fees_no_data": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "total_fees": null,
+    "transaction_count": 0
+  },
+  "validator_mev_response": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "total_mev": 2000000000,
+    "tip_count": 50
+  },
+  "validator_mev_no_data": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "total_mev": null,
+    "tip_count": 0
+  },
+  "validator_rewards_response": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "rewards": [
+      {
+        "staker_address": "9xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+        "rewards": 1000000000,
+        "commission": 100000000
+      },
+      {
+        "staker_address": "8xQeWvG816bUx9EPjHmaT23yvVM2ZWbrrpZb9PusVFin",
+        "rewards": 2000000000,
+        "commission": 200000000
+      },
+      {
+        "staker_address": null,
+        "rewards": 500000000,
+        "commission": 0
+      }
+    ]
+  },
+  "validator_rewards_no_data": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "rewards": []
+  },
+  "validator_meta_response": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "commission": 10.0,
+    "mev_enabled": true,
+    "total_stake": 50000000000000
+  },
+  "validator_meta_no_mev": {
+    "validator_key": "GvZEwtCHZ7YtCkQCaLRVEXsyVvQkRDhphsZPkhov5cSo",
+    "epoch": 500,
+    "commission": 5.0,
+    "mev_enabled": false,
+    "total_stake": 25000000000000
+  },
+  "error_404_response": {
+    "error": "Not Found",
+    "message": "Validator or epoch not found",
+    "status_code": 404
+  },
+  "error_rate_limit_response": {
+    "error": "Rate Limit Exceeded",
+    "message": "Too many requests",
+    "status_code": 429
+  }
+}
