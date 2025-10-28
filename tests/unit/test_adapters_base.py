@@ -3,16 +3,12 @@
 Tests the abstract base adapter class, circuit breaker, and common functionality.
 """
 
-import asyncio
 import time
-from datetime import datetime, timedelta
-from typing import Any
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from pydantic import ValidationError
-
 from adapters.base import (
     ChainDataProvider,
     CircuitBreaker,
@@ -20,8 +16,8 @@ from adapters.base import (
     Period,
     StakeRewards,
     ValidatorFees,
-    ValidatorMEV,
     ValidatorMeta,
+    ValidatorMEV,
 )
 from adapters.exceptions import (
     CircuitBreakerOpenError,
@@ -30,6 +26,7 @@ from adapters.exceptions import (
     ProviderRateLimitError,
     ProviderTimeoutError,
 )
+from pydantic import ValidationError
 
 
 # Concrete implementation for testing

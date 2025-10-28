@@ -4,6 +4,8 @@ This module defines exception hierarchy for handling various failure modes
 when interacting with blockchain data providers.
 """
 
+from typing import Any
+
 
 class ProviderError(Exception):
     """Base exception for all provider-related errors.
@@ -21,7 +23,7 @@ class ProviderError(Exception):
         self,
         message: str,
         provider_name: str | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Initialize ProviderError.
 
@@ -66,7 +68,7 @@ class ProviderRateLimitError(ProviderError):
         self,
         message: str,
         provider_name: str | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
         retry_after: int | None = None,
     ) -> None:
         """Initialize ProviderRateLimitError.
@@ -97,7 +99,7 @@ class ProviderDataNotFoundError(ProviderError):
         self,
         message: str,
         provider_name: str | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
         resource_type: str | None = None,
         resource_id: str | None = None,
     ) -> None:
@@ -148,7 +150,7 @@ class CircuitBreakerOpenError(ProviderError):
         self,
         message: str,
         provider_name: str | None = None,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
         open_until: float | None = None,
     ) -> None:
         """Initialize CircuitBreakerOpenError.

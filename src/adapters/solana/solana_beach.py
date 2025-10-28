@@ -6,24 +6,22 @@ providing access to validator fees, MEV, rewards, and metadata for Solana valida
 API Documentation: https://api.solanabeach.io/docs
 """
 
-from datetime import datetime, timezone
-from typing import Any
-
-from pydantic import ValidationError
+from datetime import UTC, datetime
 
 from adapters.base import (
     ChainDataProvider,
     Period,
     StakeRewards,
     ValidatorFees,
-    ValidatorMEV,
     ValidatorMeta,
+    ValidatorMEV,
 )
 from adapters.exceptions import (
     ProviderDataNotFoundError,
     ProviderError,
     ProviderValidationError,
 )
+from pydantic import ValidationError
 
 
 class SolanaBeachAdapter(ChainDataProvider):
@@ -35,6 +33,7 @@ class SolanaBeachAdapter(ChainDataProvider):
 
     def __init__(
         self,
+        provider_name: str = "solana_beach",
         base_url: str = "https://api.solanabeach.io/v1",
         api_key: str | None = None,
         timeout: int = 30,
@@ -44,6 +43,7 @@ class SolanaBeachAdapter(ChainDataProvider):
         """Initialize Solana Beach adapter.
 
         Args:
+            provider_name: Name of the provider (for logging and errors)
             base_url: Base URL for Solana Beach API
             api_key: Optional API key for authentication
             timeout: Request timeout in seconds
@@ -51,7 +51,7 @@ class SolanaBeachAdapter(ChainDataProvider):
             retry_attempts: Number of retry attempts for failed requests
         """
         super().__init__(
-            provider_name="solana_beach",
+            provider_name=provider_name,
             base_url=base_url,
             api_key=api_key,
             timeout=timeout,
@@ -91,10 +91,10 @@ class SolanaBeachAdapter(ChainDataProvider):
                     period = Period(
                         period_id=str(epoch_data["epoch"]),
                         start_time=datetime.fromtimestamp(
-                            epoch_data["start_time"], tz=timezone.utc
+                            epoch_data["start_time"], tz=UTC
                         ),
                         end_time=datetime.fromtimestamp(
-                            epoch_data["end_time"], tz=timezone.utc
+                            epoch_data["end_time"], tz=UTC
                         ),
                         metadata={
                             "slot_range": epoch_data.get("slot_range", []),

@@ -9,8 +9,8 @@ from adapters.base import (
     Period,
     StakeRewards,
     ValidatorFees,
-    ValidatorMEV,
     ValidatorMeta,
+    ValidatorMEV,
 )
 from adapters.exceptions import (
     ProviderDataNotFoundError,

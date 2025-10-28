@@ -12,21 +12,19 @@ from enum import Enum
 from typing import Any
 
 import httpx
-from pydantic import BaseModel, Field
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
-
 from adapters.exceptions import (
     CircuitBreakerOpenError,
     ProviderAuthenticationError,
     ProviderError,
     ProviderRateLimitError,
     ProviderTimeoutError,
-    ProviderValidationError,
+)
+from pydantic import BaseModel, Field
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
 )
 
 

@@ -4,10 +4,10 @@ This module provides the ProviderFactory class which instantiates the appropriat
 adapter implementation based on chain configuration and provider registry settings.
 """
 
-from typing import Any
 
 from adapters.base import ChainDataProvider
 from adapters.exceptions import ProviderError
+
 from config.chains import ChainRegistry
 from config.models import ProviderConfig
 from config.providers import ProviderRegistry
