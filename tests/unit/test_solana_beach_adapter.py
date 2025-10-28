@@ -4,12 +4,11 @@ Tests the Solana Beach adapter implementation with mocked API responses.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import patch
 
 import pytest
-
 from adapters.base import Period
 from adapters.exceptions import (
     ProviderDataNotFoundError,
@@ -44,8 +43,8 @@ def test_period() -> Period:
     """Create test period object."""
     return Period(
         period_id="500",
-        start_time=datetime(2024, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
-        end_time=datetime(2024, 1, 2, 0, 0, 0, tzinfo=timezone.utc),
+        start_time=datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
+        end_time=datetime(2024, 1, 2, 0, 0, 0, tzinfo=UTC),
     )
 
 
@@ -90,8 +89,8 @@ class TestListPeriods:
         with patch.object(
             adapter, "_request", return_value=fixtures["epochs_response"]
         ) as mock_request:
-            start = datetime(2024, 1, 1, tzinfo=timezone.utc)
-            end = datetime(2024, 1, 3, tzinfo=timezone.utc)
+            start = datetime(2024, 1, 1, tzinfo=UTC)
+            end = datetime(2024, 1, 3, tzinfo=UTC)
 
             periods = await adapter.list_periods(start, end)
 
@@ -110,8 +109,8 @@ class TestListPeriods:
     ) -> None:
         """Test listing periods with no results."""
         with patch.object(adapter, "_request", return_value={"epochs": []}):
-            start = datetime(2024, 1, 1, tzinfo=timezone.utc)
-            end = datetime(2024, 1, 3, tzinfo=timezone.utc)
+            start = datetime(2024, 1, 1, tzinfo=UTC)
+            end = datetime(2024, 1, 3, tzinfo=UTC)
 
             periods = await adapter.list_periods(start, end)
 
@@ -124,8 +123,8 @@ class TestListPeriods:
     ) -> None:
         """Test error handling in list_periods."""
         with patch.object(adapter, "_request", side_effect=ProviderError("API error")):
-            start = datetime(2024, 1, 1, tzinfo=timezone.utc)
-            end = datetime(2024, 1, 3, tzinfo=timezone.utc)
+            start = datetime(2024, 1, 1, tzinfo=UTC)
+            end = datetime(2024, 1, 3, tzinfo=UTC)
 
             with pytest.raises(ProviderError):
                 await adapter.list_periods(start, end)
@@ -432,3 +431,180 @@ class TestErrorHandling:
                 )
 
             assert "Failed to fetch validator fees" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_list_periods_provider_error(
+        self,
+        adapter: SolanaBeachAdapter,
+    ) -> None:
+        """Test list_periods handles provider errors."""
+        with patch.object(adapter, "_request", side_effect=ProviderError("API error")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.list_periods(
+                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                    datetime(2024, 1, 3, tzinfo=timezone.utc),
+                )
+
+            assert "API error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_list_periods_generic_exception(
+        self,
+        adapter: SolanaBeachAdapter,
+    ) -> None:
+        """Test list_periods wraps generic exceptions."""
+        with patch.object(adapter, "_request", side_effect=KeyError("missing_key")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.list_periods(
+                    datetime(2024, 1, 1, tzinfo=timezone.utc),
+                    datetime(2024, 1, 3, tzinfo=timezone.utc),
+                )
+
+            assert "Failed to list periods" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mev_validation_error(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test MEV validation error handling."""
+        with patch.object(
+            adapter,
+            "_request",
+            return_value={
+                "total_mev": "not_a_number",
+                "tip_count": 50,
+            },
+        ):
+            with pytest.raises(ProviderValidationError) as exc_info:
+                await adapter.get_validator_period_mev(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Invalid MEV data" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mev_provider_error_propagation(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test MEV provider error propagation."""
+        with patch.object(adapter, "_request", side_effect=ProviderError("MEV API down")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.get_validator_period_mev(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "MEV API down" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_mev_generic_exception(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test MEV generic exception handling."""
+        with patch.object(adapter, "_request", side_effect=RuntimeError("Unexpected")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.get_validator_period_mev(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Failed to fetch validator MEV" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_rewards_validation_error_in_list(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test rewards validation error for malformed item in list."""
+        with patch.object(
+            adapter,
+            "_request",
+            return_value={
+                "rewards": [
+                    {
+                        "staker_address": "addr1",
+                        "rewards": "not_a_number",  # Invalid
+                        "commission": 100,
+                    }
+                ]
+            },
+        ):
+            with pytest.raises(ProviderValidationError) as exc_info:
+                await adapter.get_stake_rewards(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Invalid reward data" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_rewards_provider_error(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test rewards provider error handling."""
+        with patch.object(adapter, "_request", side_effect=ProviderError("Rewards API error")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.get_stake_rewards(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Rewards API error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_rewards_generic_exception(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test rewards generic exception handling."""
+        with patch.object(adapter, "_request", side_effect=TypeError("Type error")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.get_stake_rewards(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Failed to fetch stake rewards" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_meta_provider_error(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test metadata provider error handling."""
+        with patch.object(adapter, "_request", side_effect=ProviderError("Meta API error")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.get_validator_meta(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Meta API error" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_meta_generic_exception(
+        self,
+        adapter: SolanaBeachAdapter,
+        test_period: Period,
+    ) -> None:
+        """Test metadata generic exception handling."""
+        with patch.object(adapter, "_request", side_effect=AttributeError("Attr error")):
+            with pytest.raises(ProviderError) as exc_info:
+                await adapter.get_validator_meta(
+                    test_period,
+                    "test_validator",
+                )
+
+            assert "Failed to fetch validator metadata" in str(exc_info.value)
