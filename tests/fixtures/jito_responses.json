@@ -1,0 +1,77 @@
+{
+  "validator_mev_history_success": [
+    {
+      "epoch": 608,
+      "mev_commission_bps": 10000,
+      "mev_rewards": 59355050
+    },
+    {
+      "epoch": 607,
+      "mev_commission_bps": 10000,
+      "mev_rewards": 45123000
+    },
+    {
+      "epoch": 606,
+      "mev_commission_bps": 10000,
+      "mev_rewards": 0
+    }
+  ],
+  "validator_mev_history_empty": [],
+  "validator_mev_single_epoch": [
+    {
+      "epoch": 608,
+      "mev_commission_bps": 10000,
+      "mev_rewards": 59355050
+    }
+  ],
+  "validator_mev_no_rewards": [
+    {
+      "epoch": 608,
+      "mev_commission_bps": 10000,
+      "mev_rewards": 0
+    }
+  ],
+  "validator_mev_different_commissions": [
+    {
+      "epoch": 610,
+      "mev_commission_bps": 5000,
+      "mev_rewards": 100000000
+    },
+    {
+      "epoch": 609,
+      "mev_commission_bps": 8000,
+      "mev_rewards": 85000000
+    },
+    {
+      "epoch": 608,
+      "mev_commission_bps": 10000,
+      "mev_rewards": 59355050
+    }
+  ],
+  "validator_mev_large_rewards": [
+    {
+      "epoch": 620,
+      "mev_commission_bps": 1000,
+      "mev_rewards": 5000000000
+    }
+  ],
+  "validator_mev_malformed_missing_epoch": [
+    {
+      "mev_commission_bps": 10000,
+      "mev_rewards": 59355050
+    }
+  ],
+  "validator_mev_malformed_missing_rewards": [
+    {
+      "epoch": 608,
+      "mev_commission_bps": 10000
+    }
+  ],
+  "validator_mev_malformed_invalid_types": [
+    {
+      "epoch": "invalid",
+      "mev_commission_bps": "not_a_number",
+      "mev_rewards": "also_invalid"
+    }
+  ]
+}

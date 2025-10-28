@@ -3,6 +3,7 @@
 This module contains adapter implementations for Solana blockchain data providers.
 """
 
+from adapters.solana.jito import JitoAdapter
 from adapters.solana.solana_beach import SolanaBeachAdapter
 
-__all__ = ["SolanaBeachAdapter"]
+__all__ = ["JitoAdapter", "SolanaBeachAdapter"]

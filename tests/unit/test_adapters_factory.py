@@ -10,6 +10,7 @@ import pytest
 from adapters.base import ChainDataProvider
 from adapters.exceptions import ProviderError
 from adapters.factory import ProviderFactory
+from adapters.solana.jito import JitoAdapter
 from adapters.solana.solana_beach import SolanaBeachAdapter
 
 from config.chains import ChainRegistry
@@ -140,12 +141,11 @@ class TestMEVAdapterCreation:
 
     def test_create_mev_adapter_solana(self, factory: ProviderFactory) -> None:
         """Test creating MEV adapter for Solana."""
-        # Jito is configured for MEV but not implemented yet
-        # This should raise an error about missing adapter
-        with pytest.raises(ProviderError) as exc_info:
-            factory.create_mev_adapter("solana-mainnet")
+        adapter = factory.create_mev_adapter("solana-mainnet")
 
-        assert "No adapter registered for provider 'jito'" in str(exc_info.value)
+        assert isinstance(adapter, JitoAdapter)
+        assert adapter.provider_name == "jito"
+        assert adapter.base_url == "https://kobe.mainnet.jito.network"
 
 
 class TestRewardsAdapterCreation:

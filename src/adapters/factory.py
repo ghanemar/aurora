@@ -50,6 +50,13 @@ class ProviderFactory:
         except ImportError:
             pass  # Adapter not available
 
+        try:
+            from adapters.solana.jito import JitoAdapter
+
+            self.register_adapter("jito", JitoAdapter)
+        except ImportError:
+            pass  # Adapter not available
+
     def register_adapter(
         self,
         provider_name: str,
