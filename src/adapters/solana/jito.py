@@ -5,7 +5,7 @@ MEV (Maximal Extractable Value) tip data for validators on Solana. The Jito API
 provides historical MEV rewards data per validator per epoch.
 """
 
-from datetime import UTC, datetime
+from datetime import datetime
 
 from pydantic import ValidationError
 
@@ -14,8 +14,8 @@ from src.adapters.base import (
     Period,
     StakeRewards,
     ValidatorFees,
-    ValidatorMEV,
     ValidatorMeta,
+    ValidatorMEV,
 )
 from src.adapters.exceptions import (
     ProviderDataNotFoundError,
