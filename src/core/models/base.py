@@ -6,7 +6,7 @@ timestamp fields and common functionality.
 
 from typing import Any
 
-from db.session import Base as DeclarativeBase
+from src.db.session import Base as DeclarativeBase
 from sqlalchemy import TIMESTAMP, Column
 from sqlalchemy.sql import func
 

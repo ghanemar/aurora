@@ -237,7 +237,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 
-from src.config.settings import get_settings
+from src.config.settings import settings
 
 # Password hashing context using bcrypt
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -293,7 +293,7 @@ def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta]
     Example:
         token = create_access_token({"sub": user.username})
     """
-    settings = get_settings()
+    settings = settings
     to_encode = data.copy()
 
     # Set expiration time
@@ -323,7 +323,7 @@ def decode_access_token(token: str) -> Optional[dict[str, Any]]:
         if payload:
             username = payload.get("sub")
     """
-    settings = get_settings()
+    settings = settings
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         return payload

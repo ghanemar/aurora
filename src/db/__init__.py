@@ -4,7 +4,7 @@ This module provides database session management and connection handling
 for PostgreSQL using SQLAlchemy async engine.
 """
 
-from db.session import Base, async_session_factory, check_db_connection, engine, get_db
+from src.db.session import Base, async_session_factory, check_db_connection, engine, get_db
 
 __all__ = [
     "engine",

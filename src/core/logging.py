@@ -14,7 +14,7 @@ from typing import Any
 import structlog
 from structlog.types import EventDict, WrappedLogger
 
-from config.settings import settings
+from src.config.settings import settings
 
 # Sensitive field names that should be filtered from logs
 SENSITIVE_FIELDS = {

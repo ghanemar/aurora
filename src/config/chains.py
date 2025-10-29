@@ -10,7 +10,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from config.models import ChainConfig
+from src.config.models import ChainConfig
 
 
 class ChainConfigError(Exception):

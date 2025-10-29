@@ -4,10 +4,10 @@ This module provides configuration loading and management for blockchain
 networks and data providers.
 """
 
-from config.chains import ChainConfigError, ChainRegistry
-from config.models import ChainConfig, PeriodType, ProviderConfig, ProviderMap
-from config.providers import ProviderConfigError, ProviderRegistry
-from config.settings import Settings, settings
+from src.config.chains import ChainConfigError, ChainRegistry
+from src.config.models import ChainConfig, PeriodType, ProviderConfig, ProviderMap
+from src.config.providers import ProviderConfigError, ProviderRegistry
+from src.config.settings import Settings, settings
 
 __all__ = [
     # Settings

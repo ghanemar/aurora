@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from config.models import ProviderConfig
+from src.config.models import ProviderConfig
 
 
 class ProviderConfigError(Exception):

@@ -11,10 +11,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import auth
-from src.config.settings import get_settings
+from src.api.routers import agreements, commissions, partners, validators
+from src.config.settings import settings
 
 # Get settings
-settings = get_settings()
+settings = settings
 
 # Create FastAPI application
 app = FastAPI(
@@ -34,8 +35,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include routers
+# Include authentication router
 app.include_router(auth.router, prefix=settings.api_v1_prefix)
+
+# Include business routers
+app.include_router(validators.router, prefix=settings.api_v1_prefix)
+app.include_router(partners.router, prefix=settings.api_v1_prefix)
+app.include_router(agreements.router, prefix=settings.api_v1_prefix)
+app.include_router(commissions.router, prefix=settings.api_v1_prefix)
 
 
 # Health check endpoint

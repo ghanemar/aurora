@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.models import User
 from src.core.security import decode_access_token
-from src.db.session import get_db_session
+from src.db.session import get_db
 
 # HTTP Bearer security scheme for JWT token
 security = HTTPBearer()
@@ -22,7 +22,7 @@ security = HTTPBearer()
 
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ) -> User:
     """Get the current authenticated user from JWT token.
 

@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import (
 )
 from sqlalchemy.orm import declarative_base
 
-from config.settings import settings
+from src.config.settings import settings
 
 # Create async engine with connection pooling
 engine = create_async_engine(

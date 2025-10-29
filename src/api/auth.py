@@ -16,7 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.api.dependencies import get_current_user
 from src.core.models import User
 from src.core.security import create_access_token, verify_password
-from src.db.session import get_db_session
+from src.db.session import get_db
 
 # Create router
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -66,7 +66,7 @@ class UserResponse(BaseModel):
 @router.post("/login", response_model=TokenResponse)
 async def login(
     login_request: LoginRequest,
-    db: AsyncSession = Depends(get_db_session),
+    db: AsyncSession = Depends(get_db),
 ) -> TokenResponse:
     """Authenticate user and return JWT token.
 

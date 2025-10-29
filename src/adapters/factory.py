@@ -8,9 +8,9 @@ adapter implementation based on chain configuration and provider registry settin
 from adapters.base import ChainDataProvider
 from adapters.exceptions import ProviderError
 
-from config.chains import ChainRegistry
-from config.models import ProviderConfig
-from config.providers import ProviderRegistry
+from src.config.chains import ChainRegistry
+from src.config.models import ProviderConfig
+from src.config.providers import ProviderRegistry
 
 
 class ProviderFactory:
