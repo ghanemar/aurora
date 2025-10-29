@@ -75,7 +75,7 @@ cp .env.example .env
 Key environment variables:
 ```bash
 # Database
-DATABASE_URL=postgresql+asyncpg://aurora:aurora_dev@localhost:5432/aurora
+DATABASE_URL=postgresql+asyncpg://aurora:aurora_dev@localhost:5433/aurora
 
 # Security
 SECRET_KEY=your-secret-key-here-change-in-production
@@ -146,6 +146,26 @@ poetry run black --check src/
 ```
 
 Expected output: 122 tests passing with 84% coverage
+
+### 8. Run the Server
+
+```bash
+# Start the FastAPI server on port 8001
+./scripts/run_server.sh
+
+# Or manually with uvicorn
+poetry run uvicorn src.main:app --reload --host 0.0.0.0 --port 8001
+```
+
+The server will start on `http://localhost:8001` with:
+- 🚀 API endpoints: `http://localhost:8001/api/v1/`
+- 📚 API documentation (Swagger): `http://localhost:8001/docs`
+- 📖 API documentation (ReDoc): `http://localhost:8001/redoc`
+- 💚 Health check: `http://localhost:8001/health`
+
+**Login credentials:**
+- Username: `admin`
+- Password: `admin123`
 
 ## Database Management
 
@@ -238,6 +258,7 @@ aurora/
 │   └── migration-guide.md      # Database migration guide
 ├── scripts/                    # Utility scripts
 │   ├── migrate.sh              # Migration management script
+│   ├── run_server.sh           # FastAPI server startup script
 │   └── seed_mvp_data.py        # MVP data seeding script
 ├── src/                        # Source code
 │   ├── config/                 # Configuration loaders
@@ -401,12 +422,12 @@ poetry run pytest -k "test_chain"
 services:
   postgres:
     image: postgres:15-alpine
-    ports: 5432:5432
+    ports: 5433:5432
     volumes: ./data/postgres
 
   redis:
     image: redis:7-alpine
-    ports: 6379:6379
+    ports: 6380:6379
 ```
 
 ### Useful Docker Commands

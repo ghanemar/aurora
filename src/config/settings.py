@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     # Database settings
     database_url: str = Field(
-        default="postgresql+asyncpg://aurora:aurora_dev@localhost:5432/aurora",
+        default="postgresql+asyncpg://aurora:aurora_dev@localhost:5433/aurora",
         description="Database connection URL",
     )
     database_pool_size: int = Field(
@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     database_echo: bool = Field(default=False, description="Echo SQL queries to console")
 
     # Redis settings
-    redis_url: str = Field(default="redis://localhost:6379/0", description="Redis connection URL")
+    redis_url: str = Field(default="redis://localhost:6380/0", description="Redis connection URL")
 
     # Security settings
     secret_key: str = Field(
@@ -104,7 +104,7 @@ class Settings(BaseSettings):
 
     # Security settings - CORS
     cors_origins: list[str] = Field(
-        default=["http://localhost:3000"],
+        default=["http://localhost:3000", "http://localhost:8001"],
         description="Allowed CORS origins",
     )
     cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
