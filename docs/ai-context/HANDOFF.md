@@ -18,9 +18,108 @@ This template helps maintain:
 
 The project direction has shifted from incremental feature development to delivering a working MVP admin dashboard within 2-3 weeks. All MVP planning documentation is complete, and 10 GitHub issues are ready for implementation.
 
-**Next Step**: Begin implementing Issue #18 (Phase 1: User Auth & API Foundation)
+**Current Status**: Issue #19 (Phase 2a: Schemas & Repositories) COMPLETED ✅
+**Next Step**: Begin implementing Issue #20 (Phase 2b: Services & Endpoints)
 
 ### Recent Completions
+
+#### Issue #18 - MVP Phase 1: User Auth & API Foundation (COMPLETED 2025-10-28)
+
+**What was completed:**
+- ✅ User model with UserRole enum (`src/core/models/users.py`)
+- ✅ Alembic migration for users table with proper indexes and constraints
+- ✅ Password hashing utilities using bcrypt (`src/core/security.py`)
+- ✅ JWT token generation and validation functions (`src/core/security.py`)
+- ✅ FastAPI application entry point with CORS middleware (`src/main.py`)
+- ✅ Authentication endpoints: POST /api/v1/auth/login and GET /api/v1/auth/me (`src/api/auth.py`)
+- ✅ Authentication dependencies with get_current_user (`src/api/dependencies.py`)
+- ✅ Test admin user created (username: admin, password: admin123)
+
+**Key Implementation Details:**
+- JWT tokens with 30-minute expiration using HS256 algorithm
+- Bearer token authentication scheme with HTTPBearer
+- Async database session dependency injection
+- Pydantic schemas for request/response validation (LoginRequest, TokenResponse, UserResponse)
+- User model with foreign key to partners table for partner role users
+- Active user validation and role-based access control foundation
+- Health check endpoint at /health and root endpoint at /
+
+**Files Created:**
+- `src/core/models/users.py` - User and UserRole models
+- `src/api/__init__.py` - API package
+- `src/api/auth.py` - Authentication endpoints
+- `src/api/dependencies.py` - FastAPI dependencies
+- `src/api/CONTEXT.md` - API layer documentation
+- `src/main.py` - FastAPI application
+- `alembic/versions/dff453762595_add_users_table_for_authentication.py` - Users table migration
+- `scripts/create_admin_user.py` - Admin user creation utility
+
+**Files Modified:**
+- `src/core/models/__init__.py` - Added User and UserRole exports
+- `src/core/security.py` - Added password hashing and JWT functions
+
+**Acceptance Criteria Met:**
+- ✅ User model defined with proper types and relationships
+- ✅ Migration creates users table with indexes successfully
+- ✅ Can login with valid credentials and receive JWT token
+- ✅ Token validates on protected endpoints via get_current_user
+- ✅ Invalid tokens rejected with 401 Unauthorized
+- ✅ FastAPI server ready to run on port 8000
+- ✅ CORS configured for localhost:3000
+- ✅ Health check returns 200 OK
+
+#### Issue #19 - MVP Phase 2a: Schemas & Repositories (COMPLETED 2025-10-29)
+
+**What was completed:**
+- ✅ Pydantic request/response schemas for validators (`src/api/schemas/validators.py`)
+- ✅ Pydantic request/response schemas for partners (`src/api/schemas/partners.py`)
+- ✅ Pydantic request/response schemas for agreements (`src/api/schemas/agreements.py`)
+- ✅ Base repository pattern with generic CRUD operations (`src/repositories/base.py`)
+- ✅ Validator repositories for P&L and metadata access (`src/repositories/validators.py`)
+- ✅ Partner repository with soft delete support (`src/repositories/partners.py`)
+- ✅ Agreement and rule repositories with versioning (`src/repositories/agreements.py`)
+
+**Key Implementation Details:**
+- Generic BaseRepository[ModelType] using Python generics for type safety
+- Comprehensive Pydantic validation with field constraints (min_length, max_length, ge, le)
+- Pagination support with offset/limit pattern across all repositories
+- Soft delete pattern for partners (is_active flag)
+- Composite key support for validators (chain_id, period_id, validator_key)
+- Date-aware filtering for active agreements (effective_from/effective_until)
+- MEV-enabled filtering for validator metadata queries
+- Email-based partner lookup and name search functionality
+
+**Schemas Created:**
+- **Validators**: ValidatorPnLResponse, ValidatorPnLListResponse, ValidatorMetaResponse, ValidatorMetaListResponse
+- **Partners**: PartnerBase, PartnerCreate, PartnerUpdate, PartnerResponse, PartnerListResponse
+- **Agreements**: AgreementBase, AgreementCreate, AgreementUpdate, AgreementResponse, AgreementListResponse, AgreementRuleCreate, AgreementRuleResponse
+
+**Repositories Created:**
+- **BaseRepository**: Generic CRUD with get(), get_all(), create(), update(), delete(), filter_by(), count(), exists()
+- **ValidatorPnLRepository**: get_by_chain_period_validator(), get_by_chain_and_period(), get_by_validator()
+- **ValidatorMetaRepository**: get_by_chain_period_validator(), get_by_chain_and_period(), get_by_validator()
+- **PartnerRepository**: get_by_email(), get_active_partners(), search_by_name(), count_active()
+- **AgreementRepository**: get_by_partner(), get_active_agreements()
+- **AgreementRuleRepository**: get_by_agreement(), get_by_revenue_component(), deactivate_version()
+
+**Files Created:**
+- `src/api/schemas/__init__.py` - Schema exports
+- `src/api/schemas/validators.py` - Validator schemas (104 lines)
+- `src/api/schemas/partners.py` - Partner schemas (85 lines)
+- `src/api/schemas/agreements.py` - Agreement schemas (135 lines)
+- `src/repositories/__init__.py` - Repository exports
+- `src/repositories/base.py` - Base repository pattern (209 lines)
+- `src/repositories/validators.py` - Validator repositories (233 lines)
+- `src/repositories/partners.py` - Partner repository (152 lines)
+- `src/repositories/agreements.py` - Agreement repositories (270 lines)
+
+**Acceptance Criteria Met:**
+- ✅ Pydantic schemas created for all MVP entities (validators, partners, agreements)
+- ✅ Repository pattern implemented with base class and inheritance
+- ✅ All repositories support pagination, filtering, and ordering
+- ✅ Type hints properly configured throughout (Python 3.10+ union syntax)
+- ✅ All code passes ruff linting checks
+- ✅ Ready for service layer and API endpoint integration (Issue #20)
 
 #### MVP Planning Session (COMPLETED 2025-10-28)
 
@@ -170,9 +269,10 @@ Prior to MVP planning, Issue #13 (Jito MEV adapter) was implemented and merged, 
 - Management script with upgrade, downgrade, history, current, create, reset commands
 
 **Database state:**
-- 18 tables created: chains, providers, chain_provider_mappings, canonical_periods, canonical_validator_identities, partners, agreements, agreement_versions, agreement_rules, ingestion_runs, staging_payloads, canonical_validator_fees, canonical_validator_mev, canonical_stake_rewards, canonical_validator_meta, validator_pnl, partner_commission_lines, partner_commission_statements
-- 4 ENUM types: ingestionstatus, datatype, agreementstatus, revenuecomponent, attributionmethod, statementstatus
-- Current revision: cec3a80e61a4 (head)
+- 19 tables created: chains, providers, chain_provider_mappings, canonical_periods, canonical_validator_identities, partners, agreements, agreement_versions, agreement_rules, ingestion_runs, staging_payloads, canonical_validator_fees, canonical_validator_mev, canonical_stake_rewards, canonical_validator_meta, validator_pnl, partner_commission_lines, partner_commission_statements, users
+- 5 ENUM types: ingestionstatus, datatype, agreementstatus, revenuecomponent, attributionmethod, statementstatus, userrole
+- Current revision: dff453762595 (head)
+- Test admin user: username=admin, password=admin123, email=admin@aurora.local
 
 #### Issue #9 - Computation Layer ORM Models (COMPLETED 2025-10-27)
 
@@ -217,20 +317,20 @@ Prior to MVP planning, Issue #13 (Jito MEV adapter) was implemented and merged, 
 
 **CRITICAL: MVP Admin Dashboard Implementation**
 
-The project has pivoted to delivering a working MVP admin dashboard within 2-3 weeks. All foundational work (database, models, migrations, adapters) provides the perfect base for this MVP.
+The project has pivoted to delivering a working MVP admin dashboard within 2-3 weeks. All foundational work (database, models, migrations, adapters, authentication) provides the perfect base for this MVP.
 
-**Immediate Next Step: Issue #18 - Phase 1: User Auth & API Foundation**
-- Days 1-3 (3 developer-days)
-- **Critical Path**: YES - Blocks all subsequent work
-- **Tasks**: User model, JWT auth, FastAPI setup, CORS, health check
-- **Acceptance**: Can login with admin credentials and receive JWT token
-- **Reference**: See `docs/mvp-plan.md` Phase 1 and `docs/mvp-implementation-order.md` Days 1-3
+**Immediate Next Step: Issue #19 - Phase 2a: Schemas & Repositories**
+- Days 4-5 (2 developer-days)
+- **Critical Path**: YES - Blocks all services and API endpoints
+- **Tasks**: Pydantic schemas for validators/partners/agreements, repository pattern for data access
+- **Acceptance**: Complete request/response schemas and repository classes for all business entities
+- **Reference**: See `docs/mvp-plan.md` Phase 2a and `docs/mvp-implementation-order.md` Days 4-5
 
 **MVP Implementation Order:**
 1. ✅ **Issue #13**: Jito MEV adapter (COMPLETED 2025-10-28)
-2. 🔄 **Issue #18**: Phase 1 - Backend Foundation (NEXT - Days 1-3)
-3. 📋 **Issue #19**: Phase 2a - Schemas & Repositories (Days 4-5)
-4. 📋 **Issue #20**: Phase 2b - Services & Endpoints (Days 6-7)
+2. ✅ **Issue #18**: Phase 1 - Backend Foundation (COMPLETED 2025-10-28)
+3. ✅ **Issue #19**: Phase 2a - Schemas & Repositories (COMPLETED 2025-10-29)
+4. 🔄 **Issue #20**: Phase 2b - Services & Endpoints (NEXT - Days 6-7)
 5. 📋 **Issue #21**: Phase 3 - Data Seeding (Day 8)
 6. 📋 **Issue #22**: Phase 4 - Frontend Setup & Auth (Days 9-10)
 7. 📋 **Issue #23**: Phase 5a - Dashboard & Validators UI (Days 11-12)

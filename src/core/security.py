@@ -226,3 +226,106 @@ def escape_like_pattern(pattern: str) -> str:
 # Bad Example (SQL injection vulnerable):
 # query = f"SELECT * FROM chains WHERE chain_id = '{chain_id}'"
 # DO NOT DO THIS!
+
+
+# ============================================================================
+# Password Hashing and Verification (for authentication)
+# ============================================================================
+
+from datetime import datetime, timedelta
+from typing import Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+from src.config.settings import get_settings
+
+# Password hashing context using bcrypt
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+
+def hash_password(password: str) -> str:
+    """Hash a plain-text password using bcrypt.
+
+    Args:
+        password: Plain-text password to hash
+
+    Returns:
+        Bcrypt-hashed password string
+
+    Example:
+        hashed = hash_password("my_secure_password")
+        # Returns: $2b$12$...
+    """
+    return pwd_context.hash(password)
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verify a plain-text password against a bcrypt hash.
+
+    Args:
+        plain_password: Plain-text password to verify
+        hashed_password: Bcrypt-hashed password to compare against
+
+    Returns:
+        True if password matches, False otherwise
+
+    Example:
+        is_valid = verify_password("my_password", stored_hash)
+    """
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+# ============================================================================
+# JWT Token Generation and Verification (for authentication)
+# ============================================================================
+
+
+def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT access token.
+
+    Args:
+        data: Dictionary of claims to encode in the token
+        expires_delta: Optional custom expiration time delta
+
+    Returns:
+        Encoded JWT token string
+
+    Example:
+        token = create_access_token({"sub": user.username})
+    """
+    settings = get_settings()
+    to_encode = data.copy()
+
+    # Set expiration time
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+
+    to_encode.update({"exp": expire})
+
+    # Encode JWT token
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    return encoded_jwt
+
+
+def decode_access_token(token: str) -> Optional[dict[str, Any]]:
+    """Decode and validate a JWT access token.
+
+    Args:
+        token: JWT token string to decode
+
+    Returns:
+        Dictionary of decoded claims if valid, None if invalid
+
+    Example:
+        payload = decode_access_token(token)
+        if payload:
+            username = payload.get("sub")
+    """
+    settings = get_settings()
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        return payload
+    except JWTError:
+        return None

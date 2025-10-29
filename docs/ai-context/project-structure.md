@@ -69,19 +69,24 @@ This document uses status markers to distinguish between implemented and planned
 
 ## Current Implementation Status
 
-**Completed Setup (as of 2025-10-27)**:
+**Completed Setup (as of 2025-10-28)**:
 - ✅ Python 3.11+ project with Poetry dependency management
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
 - ✅ Docker Compose with PostgreSQL 15 and Redis 7
-- ✅ Complete ORM data layer (`src/core/models/`) with chain registry, staging, canonical, and computation models
-- ✅ Test framework with 122 passing tests and 84% coverage
+- ✅ Complete ORM data layer (`src/core/models/`) with chain registry, staging, canonical, computation, and authentication models
+- ✅ Alembic migrations with management utilities
+- ✅ FastAPI application (`src/main.py`) with CORS middleware and health check endpoint
+- ✅ Authentication system (`src/api/`) with JWT tokens, password hashing, and protected endpoints
+- ✅ Pydantic schemas (`src/api/schemas/`) for validators, partners, and agreements with full validation
+- ✅ Repository pattern (`src/repositories/`) with generic base class and specific repositories for all entities
+- ✅ Test framework with async database fixtures
 - ✅ Type checking with mypy, linting with ruff and black
-- ✅ Security infrastructure (`src/core/security.py`, `src/core/logging.py`)
+- ✅ Security infrastructure (`src/core/security.py` with password hashing and JWT, `src/core/logging.py`)
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories)
 
-**Next Phase**: Database migrations with Alembic (Issue #10), then data ingestion adapters (Issues #11-14)
+**Next Phase**: MVP Phase 2b - Services & Endpoints (Issue #20)
 
 ---
 
@@ -101,15 +106,24 @@ aurora/
 ├── ✅ conftest.py                      # Root pytest configuration
 ├── ✅ docker-compose.yml               # Docker services (PostgreSQL, Redis)
 ├── 📋 Makefile                        # Common development tasks
-├── 📋 alembic.ini                     # Alembic migration configuration
+├── ✅ alembic.ini                     # Alembic migration configuration
+├── ✅ alembic/                        # Database migrations
+│   ├── ✅ env.py                       # Alembic environment configuration
+│   ├── ✅ script.py.mako               # Migration script template
+│   └── ✅ versions/                    # Migration files
+│       ├── ✅ cec3a80e61a4_initial_migration.py
+│       └── ✅ dff453762595_add_users_table_for_authentication.py
+├── ✅ scripts/                        # Utility scripts
+│   ├── ✅ migrate.sh                   # Migration management script
+│   └── ✅ create_admin_user.py        # Admin user creation script
 ├── ✅ chains.yaml                      # Chain registry configuration
 ├── ✅ providers.yaml                   # Data provider configuration
 ├── 📋 rbac_policy.md                  # RBAC policy matrix
 │
 ├── src/                                # Source code
 │   ├── ✅ __init__.py
-│   ├── 📋 py.typed                    # PEP 561 type checking marker
-│   ├── 📋 main.py                     # FastAPI application entry point (create when implementing API)
+│   ├── ✅ py.typed                    # PEP 561 type checking marker
+│   ├── ✅ main.py                     # FastAPI application entry point with CORS and health check
 │   │
 │   ├── ✅ config/                      # Configuration management (IMPLEMENTED)
 │   │   ├── ✅ __init__.py
@@ -124,35 +138,58 @@ aurora/
 │   │
 │   ├── ✅ core/                        # Core business logic (PARTIALLY IMPLEMENTED)
 │   │   ├── ✅ __init__.py
-│   │   ├── ✅ models/                  # SQLAlchemy ORM models (PARTIALLY IMPLEMENTED)
+│   │   ├── ✅ security.py              # Password hashing (bcrypt) and JWT token generation/validation
+│   │   ├── ✅ logging.py               # Structured logging with PII filtering
+│   │   ├── ✅ models/                  # SQLAlchemy ORM models (IMPLEMENTED)
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ base.py              # Base model with common timestamp fields
 │   │   │   ├── ✅ chains.py            # Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity
 │   │   │   ├── ✅ staging.py           # IngestionRun, StagingPayload, IngestionStatus, DataType
 │   │   │   ├── ✅ canonical.py         # CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
-│   │   │   └── 📋 ... (computation.py, agreements.py, users.py)
+│   │   │   ├── ✅ computation.py       # ValidatorPnL, Partners, Agreements, AgreementVersions, AgreementRules, PartnerCommissionLines, PartnerCommissionStatements
+│   │   │   └── ✅ users.py             # User, UserRole (authentication)
 │   │   │
-│   │   ├── 📋 schemas/                 # Pydantic request/response schemas (create when implementing API)
-│   │   │   └── 📋 ... (chains.py, validators.py, commissions.py, agreements.py, auth.py, common.py)
+│   │   ├── 📋 schemas/                 # Pydantic request/response schemas (moved to src/api/schemas/)
+│   │   │   └── 📋 ... (deprecated - see src/api/schemas/ instead)
 │   │   │
 │   │   ├── 📋 services/                # Business logic services (create when implementing features)
 │   │   │   └── 📋 ... (ingestion.py, normalization.py, commission_engine.py, etc.)
 │   │   │
-│   │   ├── 📋 repositories/            # Database access layer (create when implementing data access)
-│   │   │   └── 📋 ... (base.py, chains.py, staging.py, canonical.py, etc.)
+│   │   ├── 📋 repositories/            # Database access layer (moved to src/repositories/)
+│   │   │   └── 📋 ... (deprecated - see src/repositories/ instead)
 │   │   │
 │   │   └── 📋 utils/                   # Core utilities (create as needed)
 │   │       └── 📋 ... (logging.py, validation.py, decimals.py, hashing.py)
 │   │
-│   ├── 📋 adapters/                    # External data provider adapters (create when implementing ingestion)
-│   │   ├── 📋 base.py                  # Base adapter interface
-│   │   ├── 📋 solana/                  # Solana-specific adapters
+│   ├── ✅ adapters/                    # External data provider adapters (PARTIALLY IMPLEMENTED)
+│   │   ├── ✅ __init__.py
+│   │   ├── ✅ base.py                  # Base adapter interface (HTTPAdapter)
+│   │   ├── ✅ exceptions.py            # Provider exceptions (ProviderError hierarchy)
+│   │   ├── ✅ factory.py               # Adapter factory for dynamic instantiation
+│   │   ├── ✅ solana/                  # Solana-specific adapters
+│   │   │   ├── ✅ __init__.py
+│   │   │   ├── ✅ solana_beach.py      # Solana Beach API adapter
+│   │   │   └── ✅ jito.py              # Jito MEV data adapter
 │   │   └── 📋 ethereum/                # Ethereum-specific adapters (M1)
 │   │
-│   ├── 📋 api/                         # FastAPI routes and middleware (create when implementing API)
-│   │   ├── 📋 deps.py                  # Dependency injection (DB, auth, etc.)
-│   │   ├── 📋 middleware/              # API middleware
-│   │   └── 📋 v1/                      # API v1 endpoints
+│   ├── ✅ api/                         # FastAPI routes and authentication (IMPLEMENTED)
+│   │   ├── ✅ __init__.py
+│   │   ├── ✅ CONTEXT.md               # API layer documentation
+│   │   ├── ✅ dependencies.py          # Dependency injection (get_current_user, auth)
+│   │   ├── ✅ auth.py                  # Authentication endpoints (login, /me)
+│   │   ├── ✅ schemas/                 # Pydantic request/response schemas (IMPLEMENTED)
+│   │   │   ├── ✅ __init__.py
+│   │   │   ├── ✅ validators.py        # Validator P&L and metadata schemas
+│   │   │   ├── ✅ partners.py          # Partner CRUD schemas
+│   │   │   └── ✅ agreements.py        # Agreement and rule schemas
+│   │   └── 📋 v1/                      # API v1 business endpoints (Phase 2+)
+│   │
+│   ├── ✅ repositories/                # Database access layer (IMPLEMENTED)
+│   │   ├── ✅ __init__.py
+│   │   ├── ✅ base.py                  # Generic BaseRepository with CRUD operations
+│   │   ├── ✅ validators.py            # ValidatorPnL and ValidatorMeta repositories
+│   │   ├── ✅ partners.py              # Partner repository with soft delete
+│   │   └── ✅ agreements.py            # Agreement and AgreementRule repositories
 │   │
 │   └── 📋 jobs/                        # Background job definitions (create when implementing background tasks)
 │       └── 📋 ... (ingestion.py, normalization.py, computation.py, scheduler.py)

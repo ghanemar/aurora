@@ -6,6 +6,7 @@ This package exports all database models for:
 - Staging Layer: IngestionRun, StagingPayload, IngestionStatus, DataType
 - Canonical Layer: CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
 - Computation Layer: ValidatorPnL, Partners, Agreements, AgreementVersions, AgreementRules, PartnerCommissionLines, PartnerCommissionStatements
+- Authentication: User, UserRole
 - Base Model: BaseModel with common timestamp fields
 
 Example:
@@ -56,6 +57,7 @@ from .staging import (
     IngestionStatus,
     StagingPayload,
 )
+from .users import User, UserRole
 
 __all__ = [
     # Base
@@ -90,4 +92,7 @@ __all__ = [
     "RevenueComponent",
     "AttributionMethod",
     "StatementStatus",
+    # Authentication
+    "User",
+    "UserRole",
 ]
