@@ -116,7 +116,24 @@ poetry shell
 ./scripts/migrate.sh current
 ```
 
-### 6. Verify Installation
+### 6. Seed Database with Test Data
+
+```bash
+# Seed database with realistic MVP test data
+poetry run python scripts/seed_mvp_data.py
+
+# Login credentials after seeding:
+# Username: admin
+# Password: admin123
+```
+
+This seeds:
+- 3 Solana validators with realistic P&L data
+- 2 partners with active agreements
+- 3 epochs of financial data (fees, MEV, rewards)
+- Commission calculation rules
+
+### 7. Verify Installation
 
 ```bash
 # Run test suite
@@ -155,6 +172,23 @@ Expected output: 122 tests passing with 84% coverage
 ```
 
 See [Migration Guide](docs/migration-guide.md) for detailed documentation.
+
+### Data Seeding
+
+```bash
+# Seed database with MVP test data (idempotent)
+poetry run python scripts/seed_mvp_data.py
+```
+
+The seed script populates the database with:
+- **1 Admin User**: username `admin`, password `admin123`
+- **3 Solana Validators**: Real mainnet validators with identity mappings
+- **2 Partners**: With contact information and active agreements
+- **3 Canonical Periods**: Last 3 Solana epochs (850-852)
+- **Financial Data**: Realistic fees (~50 SOL), MEV (~30 SOL), rewards (~100 SOL) per epoch
+- **Commission Rules**: 10% and 15% rates on MEV revenue
+
+The script is fully idempotent and can be run multiple times safely without duplicating data.
 
 ### Database Schema
 
@@ -203,7 +237,8 @@ aurora/
 │   ├── database-schema.md      # Complete schema specification
 │   └── migration-guide.md      # Database migration guide
 ├── scripts/                    # Utility scripts
-│   └── migrate.sh              # Migration management script
+│   ├── migrate.sh              # Migration management script
+│   └── seed_mvp_data.py        # MVP data seeding script
 ├── src/                        # Source code
 │   ├── config/                 # Configuration loaders
 │   ├── core/                   # Core functionality
@@ -394,24 +429,27 @@ docker-compose up -d
 
 ## Development Status
 
-### Completed (Issues #1-10)
-- ✅ Project foundation and infrastructure setup
-- ✅ Chain registry ORM models
-- ✅ Staging layer ORM models
-- ✅ Canonical layer ORM models
-- ✅ Computation layer ORM models
-- ✅ Alembic migrations with async support
+### Completed (Issues #1-21)
+- ✅ Project foundation and infrastructure setup (Issues #1-3)
+- ✅ Chain registry ORM models (Issues #4-6)
+- ✅ Staging layer ORM models (Issue #7)
+- ✅ Canonical layer ORM models (Issue #8)
+- ✅ Computation layer ORM models (Issue #9-10)
+- ✅ Alembic migrations with async support (Issue #11)
+- ✅ Jito MEV adapter implementation (Issue #13)
+- ✅ Commission calculation services (Issues #17-20)
+- ✅ MVP data seeding script (Issue #21)
 
-### In Progress (Issues #11-14)
-- 🚧 Data ingestion adapters (Solana, Ethereum)
-- 🚧 Provider API client abstraction
-- 🚧 Ingestion orchestration
+### In Progress (Issues #22+)
+- 🚧 Frontend development with seeded data
+- 🚧 API endpoints for validators, partners, agreements
+- 🚧 Commission calculation API integration
 
-### Planned (Issues #15+)
-- 📋 Commission calculation service
-- 📋 Authentication & RBAC
-- 📋 REST API implementation
-- 📋 API documentation (OpenAPI/Swagger)
+### Planned (Future Milestones)
+- 📋 Full data ingestion pipeline
+- 📋 Authentication & RBAC implementation
+- 📋 Additional blockchain adapters (Ethereum)
+- 📋 Production deployment infrastructure
 
 ## Contributing
 
