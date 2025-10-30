@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # PostgreSQL Database
   postgres:
     image: postgres:15-alpine
     container_name: aurora-postgres
@@ -20,6 +21,7 @@ services:
     networks:
       - aurora-network
 
+  # Redis Cache
   redis:
     image: redis:7-alpine
     container_name: aurora-redis
@@ -30,6 +32,68 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - aurora-network
+
+  # Backend API (FastAPI)
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: aurora-backend
+    environment:
+      # Database
+      DATABASE_URL: postgresql+asyncpg://aurora:aurora_dev@postgres:5432/aurora
+      # Redis
+      REDIS_URL: redis://redis:6379/0
+      # Security
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      JWT_ALGORITHM: HS256
+      ACCESS_TOKEN_EXPIRE_MINUTES: 43200
+      # API
+      API_V1_PREFIX: /api/v1
+      CORS_ORIGINS: http://localhost:3000,http://localhost
+      # Environment
+      ENVIRONMENT: development
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8001/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - aurora-network
+    volumes:
+      # Mount source code for development (hot reload)
+      - ./src:/app/src
+      - ./alembic:/app/alembic
+    command: uvicorn src.main:app --host 0.0.0.0 --port 8001 --reload
+
+  # Frontend (React + Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: aurora-frontend
+    environment:
+      VITE_API_URL: http://localhost:8001
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     networks:
       - aurora-network
 
