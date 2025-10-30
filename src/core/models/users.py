@@ -80,9 +80,9 @@ class User(BaseModel):
     )
 
     role = Column(
-        Enum(UserRole, name="userrole"),
+        String(20),
         nullable=False,
-        default=UserRole.ADMIN,
+        default="admin",
         comment="User role for access control",
     )
 

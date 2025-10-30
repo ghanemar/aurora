@@ -75,7 +75,7 @@ cp .env.example .env
 Key environment variables:
 ```bash
 # Database
-DATABASE_URL=postgresql+asyncpg://aurora:aurora_dev@localhost:5433/aurora
+DATABASE_URL=postgresql+asyncpg://aurora:aurora_dev@localhost:5434/aurora
 
 # Security
 SECRET_KEY=your-secret-key-here-change-in-production
@@ -422,12 +422,12 @@ poetry run pytest -k "test_chain"
 services:
   postgres:
     image: postgres:15-alpine
-    ports: 5433:5432
+    ports: 5434:5432
     volumes: ./data/postgres
 
   redis:
     image: redis:7-alpine
-    ports: 6380:6379
+    ports: 6381:6379
 ```
 
 ### Useful Docker Commands

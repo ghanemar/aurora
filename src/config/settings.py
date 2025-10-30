@@ -58,7 +58,7 @@ class Settings(BaseSettings):
 
     # Database settings
     database_url: str = Field(
-        default="postgresql+asyncpg://aurora:aurora_dev@localhost:5433/aurora",
+        default="postgresql+asyncpg://aurora:aurora_dev@localhost:5434/aurora",
         description="Database connection URL",
     )
     database_pool_size: int = Field(
@@ -70,7 +70,7 @@ class Settings(BaseSettings):
     database_echo: bool = Field(default=False, description="Echo SQL queries to console")
 
     # Redis settings
-    redis_url: str = Field(default="redis://localhost:6380/0", description="Redis connection URL")
+    redis_url: str = Field(default="redis://localhost:6381/0", description="Redis connection URL")
 
     # Security settings
     secret_key: str = Field(

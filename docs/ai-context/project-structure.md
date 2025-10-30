@@ -22,8 +22,8 @@
 - **APScheduler** - Cron-like scheduling for periodic ingestion
 
 ### Authentication & Security
-- **python-jose** - JWT token creation and validation
-- **passlib + bcrypt** - Password hashing
+- **python-jose** - JWT token creation and validation (30-day token expiration)
+- **passlib + bcrypt 4.3.0** - Password hashing (bcrypt compatibility with Python 3.11+)
 - **python-multipart** - Form data handling for OAuth2
 
 ### HTTP Clients & External APIs
@@ -69,16 +69,16 @@ This document uses status markers to distinguish between implemented and planned
 
 ## Current Implementation Status
 
-**Completed Setup (as of 2025-10-28)**:
+**Completed Setup (as of 2025-10-30)**:
 - ✅ Python 3.11+ project with Poetry dependency management
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
-- ✅ Docker Compose with PostgreSQL 15 and Redis 7
+- ✅ Docker Compose with PostgreSQL 15 (port 5434) and Redis 7 (port 6381)
 - ✅ Complete ORM data layer (`src/core/models/`) with chain registry, staging, canonical, computation, and authentication models
 - ✅ Alembic migrations with management utilities
-- ✅ FastAPI application (`src/main.py`) with CORS middleware and health check endpoint
-- ✅ Authentication system (`src/api/`) with JWT tokens, password hashing, and protected endpoints
-- ✅ Pydantic schemas (`src/api/schemas/`) for validators, partners, and agreements with full validation
+- ✅ FastAPI application (`src/main.py`) running on port 8001 with CORS middleware and health check endpoint
+- ✅ Authentication system (`src/api/`) with JWT tokens (30-day expiration), bcrypt password hashing, and protected endpoints - **verified operational**
+- ✅ Pydantic v2 schemas (`src/api/schemas/`) for validators, partners, and agreements with strict validation
 - ✅ Repository pattern (`src/repositories/`) with generic base class and specific repositories for all entities
 - ✅ Test framework with async database fixtures
 - ✅ Type checking with mypy, linting with ruff and black
@@ -591,16 +591,14 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.5
-**Last Updated**: 2025-10-27
+**Document Version**: 1.6
+**Last Updated**: 2025-10-30
 **Status**: Active
-**Recent Changes (v1.5 - 2025-10-27)**:
-- Added canonical layer ORM models (`src/core/models/canonical.py`) with CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
-- Updated file tree with canonical.py and test_models_canonical.py
-- Expanded test suite to 100 tests (42 ORM model tests, 79% coverage)
-- Updated Current Implementation Status with completed Issue #8
-- Documented NUMERIC(38,18) precision for blockchain-native amounts, unique constraints, and source traceability patterns
-- Documented bidirectional relationships between canonical, staging, and chain registry models
+**Recent Changes (v1.6 - 2025-10-30)**:
+- Updated authentication technology stack with bcrypt 4.3.0 version and 30-day JWT token expiration
+- Updated deployment ports: Backend 8001, PostgreSQL 5434, Redis 6381
+- Verified authentication system fully operational with complete end-to-end testing
+- Updated implementation status date and added operational verification confirmation
 
 **Previous Changes (v1.4 - 2025-10-26)**:
 - Added staging layer ORM models (`src/core/models/staging.py`) with IngestionRun, StagingPayload, and enums

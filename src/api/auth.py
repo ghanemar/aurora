@@ -123,7 +123,7 @@ async def get_current_user_info(
         username=current_user.username,
         email=current_user.email,
         full_name=current_user.full_name,
-        role=current_user.role.value,
+        role=current_user.role,
         is_active=current_user.is_active,
         partner_id=current_user.partner_id,
     )

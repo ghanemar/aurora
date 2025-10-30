@@ -7,10 +7,11 @@
 The API layer implements RESTful endpoints using FastAPI with JWT-based authentication:
 
 - **Framework**: FastAPI with async/await patterns
-- **Authentication**: JWT tokens (python-jose) with Bearer scheme
-- **Security**: Bcrypt password hashing (passlib), CORS middleware
-- **Validation**: Pydantic schemas for request/response validation
+- **Authentication**: JWT tokens (python-jose) with Bearer scheme, 30-day token expiration
+- **Security**: Bcrypt 4.3.0 password hashing (passlib), CORS middleware
+- **Validation**: Pydantic v2 schemas for request/response validation with strict email validation
 - **Database**: Async SQLAlchemy sessions via dependency injection
+- **User Roles**: String-based role storage ("admin", "partner") for database enum compatibility
 
 ## Authentication System (`auth.py`)
 
@@ -29,15 +30,19 @@ Implements user authentication endpoints:
 Reusable FastAPI dependencies for authentication:
 
 - `security: HTTPBearer` - Bearer token extraction from headers
-- `get_current_user()` - JWT validation and user retrieval from database
-- `get_current_active_admin()` - Admin role verification for protected endpoints
+- `get_current_user()` - JWT validation and user retrieval from database with active status check
+- `get_current_active_admin()` - Admin role verification using string comparison (role == "admin")
 
 **Authentication Flow:**
 1. Extract Bearer token from Authorization header
-2. Decode and validate JWT token (signature, expiration)
-3. Retrieve user from database by username claim
-4. Verify user is active
+2. Decode and validate JWT token using settings.secret_key and settings.algorithm
+3. Retrieve user from database by username claim (sub field)
+4. Verify user exists and is active
 5. Return User object for dependency injection
+
+**Role-Based Access:**
+- Roles stored as strings in User model ("admin", "partner")
+- Role verification uses direct string comparison for compatibility with database enum
 
 ## Integration Points
 

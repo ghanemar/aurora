@@ -293,7 +293,6 @@ def create_access_token(data: dict[str, Any], expires_delta: Optional[timedelta]
     Example:
         token = create_access_token({"sub": user.username})
     """
-    settings = settings
     to_encode = data.copy()
 
     # Set expiration time
@@ -323,7 +322,6 @@ def decode_access_token(token: str) -> Optional[dict[str, Any]]:
         if payload:
             username = payload.get("sub")
     """
-    settings = settings
     try:
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         return payload

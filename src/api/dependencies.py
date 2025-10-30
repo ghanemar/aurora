@@ -93,9 +93,7 @@ async def get_current_active_admin(
     Raises:
         HTTPException: If user is not an admin
     """
-    from src.core.models.users import UserRole
-
-    if current_user.role != UserRole.ADMIN:
+    if current_user.role != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Admin access required",
