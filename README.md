@@ -167,6 +167,56 @@ The server will start on `http://localhost:8001` with:
 - Username: `admin`
 - Password: `admin123`
 
+### 9. Run the Frontend (Optional - MVP Phase 4+)
+
+The React + TypeScript frontend is available in the `frontend/` directory.
+
+**Prerequisites:**
+- Node.js 18+ (20+ recommended)
+- npm or yarn
+
+**Setup and run:**
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server on port 3000
+npm run dev
+```
+
+The frontend will start on `http://localhost:3000` with:
+- 🎨 Modern dark theme UI matching GLOBALSTAKE design system
+- 🔐 JWT authentication flow (login → dashboard)
+- 🛡️ Protected routes with automatic redirect
+- 📱 Material-UI components with responsive design
+
+**Frontend features (MVP Phase 4 - Issue #22):**
+- ✅ Login page with form validation
+- ✅ Dashboard shell with user info
+- ✅ Authentication context with token persistence
+- ✅ Protected route component
+- ✅ Automatic token expiration handling
+- ✅ API proxy to backend (port 8001)
+
+**Tech stack:**
+- React 19 + TypeScript
+- Vite (build tool)
+- Material-UI v7 (design system)
+- React Router v7 (routing)
+- React Query (data fetching)
+- Axios (HTTP client)
+
+**Build for production:**
+
+```bash
+cd frontend
+npm run build
+# Output in frontend/dist/
+```
+
 ## Database Management
 
 ### Migration Commands
@@ -450,7 +500,7 @@ docker-compose up -d
 
 ## Development Status
 
-### Completed (Issues #1-21)
+### Completed (Issues #1-22)
 - ✅ Project foundation and infrastructure setup (Issues #1-3)
 - ✅ Chain registry ORM models (Issues #4-6)
 - ✅ Staging layer ORM models (Issue #7)
@@ -458,13 +508,16 @@ docker-compose up -d
 - ✅ Computation layer ORM models (Issue #9-10)
 - ✅ Alembic migrations with async support (Issue #11)
 - ✅ Jito MEV adapter implementation (Issue #13)
-- ✅ Commission calculation services (Issues #17-20)
+- ✅ User authentication system (Issue #18)
+- ✅ API schemas and repositories (Issue #19)
+- ✅ Services and REST endpoints (Issue #20)
 - ✅ MVP data seeding script (Issue #21)
+- ✅ **Frontend setup with authentication** (Issue #22) - React + TypeScript + MUI
 
-### In Progress (Issues #22+)
-- 🚧 Frontend development with seeded data
-- 🚧 API endpoints for validators, partners, agreements
-- 🚧 Commission calculation API integration
+### In Progress (Issues #23+)
+- 🚧 Dashboard & Validators UI (Issue #23)
+- 🚧 Partners & Agreements UI (Issue #24)
+- 🚧 Commissions Viewer UI (Issue #25)
 
 ### Planned (Future Milestones)
 - 📋 Full data ingestion pipeline
