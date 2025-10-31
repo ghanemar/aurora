@@ -11,7 +11,10 @@ import type { AuthResponse, User, LoginRequest, ApiError } from '../types';
  * - Response interceptor for 401 handling
  */
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8001';
+// Use relative URL for Docker/production (Nginx proxy) or full URL for development
+// In Docker, Nginx proxies /api and /health to the backend
+// In development, use the full backend URL
+const API_URL = import.meta.env.VITE_API_URL || '';
 
 // Create axios instance
 export const api = axios.create({
