@@ -1,0 +1,43 @@
+# Aurora Chain Configurations
+# This file defines blockchain network configurations for the Aurora platform.
+
+chains:
+  - chain_id: "solana-mainnet"
+    name: "Solana Mainnet"
+    period_type: "EPOCH"
+    native_unit: "SOL"
+    native_decimals: 9
+    finality_lag: 32  # 32 confirmed blocks for finality
+    providers:
+      fees: "solana_beach"
+      mev: "jito"
+      rewards: "solana_beach"
+      meta: "solana_beach"
+      rpc_url: "https://api.mainnet-beta.solana.com"
+
+  - chain_id: "solana-testnet"
+    name: "Solana Testnet"
+    period_type: "EPOCH"
+    native_unit: "SOL"
+    native_decimals: 9
+    finality_lag: 32
+    providers:
+      fees: "solana_beach"
+      mev: "jito"
+      rewards: "solana_beach"
+      meta: "solana_beach"
+      rpc_url: "https://api.testnet.solana.com"
+
+  # Placeholder for future Ethereum support (M1)
+  # - chain_id: "ethereum-mainnet"
+  #   name: "Ethereum Mainnet"
+  #   period_type: "BLOCK_WINDOW"
+  #   native_unit: "ETH"
+  #   native_decimals: 18
+  #   finality_lag: 64
+  #   providers:
+  #     fees: "etherscan"
+  #     mev: "flashbots"
+  #     rewards: "beaconchain"
+  #     meta: "etherscan"
+  #     rpc_url: "https://mainnet.infura.io/v3/YOUR_INFURA_PROJECT_ID"

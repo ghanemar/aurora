@@ -18,10 +18,91 @@ This template helps maintain:
 
 The project direction has shifted from incremental feature development to delivering a working MVP admin dashboard within 2-3 weeks. All MVP planning documentation is complete, and 10 GitHub issues are ready for implementation.
 
-**Current Status**: Issue #22 completed ✅ + Docker deployment operational ✅
-**Next Step**: Begin implementing Issue #23 (Phase 5a: Dashboard & Validators UI)
+**Current Status**: Issue #23 Frontend Complete ✅ - Backend API Implementation Required ⚠️
+**Next Step**: Implement backend API endpoints for dashboard and validators (see Backend API Requirements below)
 
 ### Recent Completions
+
+#### Issue #23 - MVP Phase 5a: Dashboard & Validators UI - Frontend (COMPLETED 2025-10-31)
+
+**What was completed:**
+- ✅ Complete TypeScript type definitions for Validators, Partners, Agreements, Dashboard stats
+- ✅ Validators API service with full CRUD operations (`frontend/src/services/validators.ts`)
+- ✅ Dashboard data hook with React Query integration (`frontend/src/hooks/useDashboardData.ts`)
+- ✅ Enhanced Dashboard page with stats cards, chains overview, recent commissions
+- ✅ Validator form component with Solana address validation (base58 format)
+- ✅ Validators page with MUI DataGrid, CRUD operations, chain filtering
+- ✅ Routing configured for /dashboard and /validators
+- ✅ YAML dependency installed for chains.yaml parsing
+- ✅ chains.yaml copied to frontend public folder
+
+**Frontend Features:**
+- Dashboard stats cards: Validators, Partners, Agreements, Recent Commissions
+- Chains overview with validator count per chain
+- Recent commissions list with formatted dates
+- Loading skeletons and error handling throughout
+- Validators DataGrid with sorting, pagination, filtering
+- Add/Edit/Delete validator operations with confirmation dialogs
+- Form validation: required fields, Solana base58 address format (32-44 chars)
+- Chain filter dropdown with all configured chains
+
+**Files Created:**
+- `frontend/src/types/index.ts` - Extended with Validator, Partner, Agreement, Dashboard types
+- `frontend/src/services/validators.ts` - Validators API client
+- `frontend/src/hooks/useDashboardData.ts` - Dashboard data fetching hook
+- `frontend/src/components/ValidatorForm.tsx` - Validator add/edit form
+- `frontend/src/pages/ValidatorsPage.tsx` - Validators CRUD page
+- `frontend/public/config/chains.yaml` - Chain configuration for frontend
+
+**Files Modified:**
+- `frontend/src/pages/DashboardPage.tsx` - Complete implementation with real data
+- `frontend/src/App.tsx` - Added /validators route
+
+**⚠️ CRITICAL - Backend API Implementation Required:**
+
+The frontend is complete but requires the following backend API endpoints to be implemented:
+
+**High Priority (Dashboard Stats):**
+1. `GET /api/v1/validators/stats` - Validator counts by chain
+2. `GET /api/v1/partners/count` - Total partners count
+3. `GET /api/v1/agreements/count?status=ACTIVE` - Active agreements count
+
+**Medium Priority (Validators CRUD):**
+4. Create `validators` table in database schema
+5. `GET /api/v1/validators` - List validators with pagination and chain filter
+6. `POST /api/v1/validators` - Create new validator
+
+**Lower Priority (Full CRUD):**
+7. `PATCH /api/v1/validators/{validator_key}/{chain_id}` - Update validator
+8. `DELETE /api/v1/validators/{validator_key}/{chain_id}` - Delete validator
+9. `GET /api/v1/commissions/recent?limit=10` - Recent commission calculations
+
+**Database Schema Required:**
+```sql
+CREATE TABLE validators (
+    validator_key VARCHAR(100) NOT NULL,
+    chain_id VARCHAR(50) NOT NULL REFERENCES chains(chain_id),
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (validator_key, chain_id)
+);
+```
+
+**Complete API Specifications:**
+See detailed endpoint specifications with request/response formats, validation requirements, and implementation steps below in "Backend API Requirements" section.
+
+**Acceptance Criteria Status:**
+- ✅ Dashboard page implemented with all required stats cards
+- ✅ Chains overview displays configured chains from chains.yaml
+- ✅ Validators page with MUI DataGrid
+- ✅ Chain filter dropdown functional
+- ✅ Add/Edit/Delete validator dialogs with validation
+- ✅ Form validation prevents invalid Solana addresses
+- ✅ Loading skeletons and error handling
+- ✅ Navigation between Dashboard and Validators pages
+- ⚠️ Backend API endpoints required for full functionality
 
 #### Issue #22 - MVP Phase 4: Frontend Setup & Auth + Docker Deployment (COMPLETED 2025-10-31)
 
@@ -680,6 +761,282 @@ The project has pivoted to delivering a working MVP admin dashboard within 2-3 w
 - Issues #11-12: Additional adapters (Ethereum, full Solana ingestion)
 - Issues #14-17: Advanced services, background jobs, complex API features
 - Future M1: Multi-chain expansion, partner portal, advanced commission methods
+
+## Backend API Requirements for Issue #23
+
+The following backend API endpoints must be implemented to make the Dashboard and Validators pages fully functional. Each endpoint includes complete specifications.
+
+### 1. Dashboard Stats Endpoints (High Priority)
+
+#### GET /api/v1/validators/stats
+**Purpose**: Get validator counts by chain for dashboard display
+
+**Query Parameters**: None
+
+**Expected Response**:
+```json
+{
+  "total": 15,
+  "chains": {
+    "solana-mainnet": 10,
+    "solana-testnet": 5
+  }
+}
+```
+
+**Implementation Steps**:
+1. Create endpoint in `src/api/routers/validators.py`
+2. Query canonical tables or `validator_pnl` grouped by `chain_id`
+3. Count distinct `validator_key` per chain
+4. Return aggregated counts
+
+---
+
+#### GET /api/v1/partners/count
+**Purpose**: Get total count of partners
+
+**Query Parameters**: None
+
+**Expected Response**:
+```json
+{
+  "count": 8
+}
+```
+
+**Implementation Steps**:
+1. Create endpoint in `src/api/routers/partners.py`
+2. Query `partners` table, optionally filter by `is_active=true`
+3. Return count
+
+---
+
+#### GET /api/v1/agreements/count
+**Purpose**: Get count of agreements by status
+
+**Query Parameters**:
+- `status` (optional): AgreementStatus enum (DRAFT, ACTIVE, SUSPENDED, TERMINATED)
+
+**Expected Response**:
+```json
+{
+  "count": 12
+}
+```
+
+**Implementation Steps**:
+1. Create endpoint in `src/api/routers/agreements.py`
+2. Query `agreements` table with optional status filter
+3. Return count
+
+---
+
+#### GET /api/v1/commissions/recent
+**Purpose**: Get recent commission calculations
+
+**Query Parameters**:
+- `limit` (optional, default: 10): Number of records
+
+**Expected Response**:
+```json
+{
+  "data": [
+    {
+      "commission_id": "uuid",
+      "agreement_id": "uuid",
+      "period_id": "uuid",
+      "validator_key": "A1b2C3...",
+      "commission_amount_native": "1234567890",
+      "computed_at": "2025-10-31T12:00:00Z"
+    }
+  ]
+}
+```
+
+**Implementation Steps**:
+1. Create endpoint in `src/api/routers/commissions.py`
+2. Query `partner_commission_lines` table
+3. Order by `computed_at DESC`
+4. Limit results and return list
+
+### 2. Validators CRUD Endpoints (Medium Priority)
+
+#### Database Schema: validators table
+```sql
+CREATE TABLE validators (
+    validator_key VARCHAR(100) NOT NULL,
+    chain_id VARCHAR(50) NOT NULL REFERENCES chains(chain_id) ON DELETE CASCADE,
+    description TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (validator_key, chain_id),
+    CONSTRAINT ck_validator_key_not_empty CHECK (validator_key <> '')
+);
+
+CREATE INDEX idx_validators_chain ON validators(chain_id);
+CREATE INDEX idx_validators_active ON validators(is_active);
+```
+
+---
+
+#### GET /api/v1/validators
+**Purpose**: List all validators with pagination and filtering
+
+**Query Parameters**:
+- `chain_id` (optional): Filter by chain
+- `page` (optional, default: 1): Page number
+- `page_size` (optional, default: 10): Items per page
+
+**Expected Response**:
+```json
+{
+  "total": 50,
+  "page": 1,
+  "page_size": 10,
+  "data": [
+    {
+      "validator_key": "A1b2C3...",
+      "chain_id": "solana-mainnet",
+      "description": "Main validator",
+      "is_active": true,
+      "created_at": "2025-10-01T00:00:00Z",
+      "updated_at": "2025-10-01T00:00:00Z"
+    }
+  ]
+}
+```
+
+**Implementation Steps**:
+1. Create `validators` table via Alembic migration
+2. Create repository in `src/repositories/validators.py` (registry methods)
+3. Create service in `src/core/services/validators.py`
+4. Implement endpoint with pagination and filtering
+5. Return paginated response
+
+---
+
+#### POST /api/v1/validators
+**Purpose**: Create a new validator
+
+**Request Body**:
+```json
+{
+  "validator_key": "A1b2C3d4E5...",
+  "chain_id": "solana-mainnet",
+  "description": "Optional description"
+}
+```
+
+**Validation**:
+- `validator_key`: Required, 32-44 characters, base58 format
+- `chain_id`: Required, must exist in chains.yaml
+- `description`: Optional, max 500 characters
+
+**Expected Response**: `201 Created` (same structure as GET)
+
+**Implementation Steps**:
+1. Validate input using Pydantic schema
+2. Check for duplicate (validator_key, chain_id)
+3. Insert into `validators` table
+4. Return created record
+
+---
+
+#### PATCH /api/v1/validators/{validator_key}/{chain_id}
+**Purpose**: Update validator description or active status
+
+**Request Body** (all optional):
+```json
+{
+  "description": "Updated description",
+  "is_active": false
+}
+```
+
+**Expected Response**: `200 OK` (updated validator record)
+
+---
+
+#### DELETE /api/v1/validators/{validator_key}/{chain_id}
+**Purpose**: Delete a validator
+
+**Expected Response**: `204 No Content`
+
+**Implementation Steps**:
+1. Find validator by composite key
+2. Check for dependencies (P&L records, etc.)
+3. Soft delete (set `is_active=false`) or hard delete
+4. Return 204 on success, 404 if not found
+
+---
+
+### Implementation Priority
+
+**Phase 1 - Dashboard Operational** (2-3 hours):
+1. ✅ `GET /api/v1/validators/stats`
+2. ✅ `GET /api/v1/partners/count`
+3. ✅ `GET /api/v1/agreements/count`
+
+**Phase 2 - Basic Validators CRUD** (3-4 hours):
+4. ✅ Create `validators` table migration
+5. ✅ `GET /api/v1/validators` (list with filters)
+6. ✅ `POST /api/v1/validators` (create)
+
+**Phase 3 - Full Validators CRUD** (2-3 hours):
+7. ⚠️ `PATCH /api/v1/validators/{key}/{chain}` (update)
+8. ⚠️ `DELETE /api/v1/validators/{key}/{chain}` (delete)
+
+**Phase 4 - Optional Enhancement** (1-2 hours):
+9. ⚠️ `GET /api/v1/commissions/recent` (recent commissions)
+
+**Total Estimated Time**: 8-12 hours for complete implementation
+
+---
+
+### Testing Checklist
+
+Once endpoints are implemented:
+
+**Dashboard Tests**:
+- [ ] Dashboard loads without errors
+- [ ] Stats cards display correct numbers
+- [ ] Chains list shows all configured chains
+- [ ] Recent commissions list appears (if data exists)
+- [ ] Loading skeletons work properly
+- [ ] Error handling displays user-friendly messages
+
+**Validators Page Tests**:
+- [ ] Validators list loads in DataGrid
+- [ ] Chain filter dropdown works
+- [ ] Pagination works (if >25 validators)
+- [ ] Add validator with valid Solana address succeeds
+- [ ] Form validation catches invalid addresses
+- [ ] Edit validator updates description
+- [ ] Delete validator shows confirmation and removes record
+- [ ] DataGrid refreshes after create/edit/delete
+
+---
+
+### Reference Files
+
+**Frontend Implementation**:
+- `frontend/src/types/index.ts` - Type definitions
+- `frontend/src/services/validators.ts` - API client
+- `frontend/src/hooks/useDashboardData.ts` - Data fetching hook
+- `frontend/src/pages/DashboardPage.tsx` - Dashboard UI
+- `frontend/src/pages/ValidatorsPage.tsx` - Validators CRUD UI
+
+**Backend Files to Create/Modify**:
+- `src/api/routers/validators.py` - Add stats and CRUD endpoints
+- `src/api/routers/partners.py` - Add count endpoint
+- `src/api/routers/agreements.py` - Add count endpoint
+- `src/api/routers/commissions.py` - Add recent endpoint
+- `src/repositories/validators.py` - Add registry repository (separate from P&L)
+- `src/core/services/validators.py` - Add registry service methods
+- `alembic/versions/xxx_create_validators_table.py` - New migration
+
+---
 
 ## Completed Work Summary
 
