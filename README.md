@@ -6,18 +6,20 @@ Deterministic, auditable computation of validator revenue and partner commission
 
 Aurora provides a comprehensive system for tracking validator performance and calculating partner commissions across multiple blockchain networks. The platform emphasizes deterministic calculations, full audit trails, and provider swappability.
 
-**Current Phase:** Complete data layer with working database migrations
-**MVP Target:** Solana support with ingestion adapters (in progress)
-**Milestone 1:** Add Ethereum support
+**Current Phase:** MVP Admin Dashboard with Authentication ✅
+**MVP Status:** Frontend + Backend + Docker deployment operational
+**Next Phase:** Dashboard & Validators UI (Issue #23)
 
 ## Key Features
 
 - ✅ **Complete ORM Data Layer** - All models implemented (chains, staging, canonical, computation)
 - ✅ **Database Migrations** - Alembic configured with async SQLAlchemy support
 - ✅ **Chain-agnostic Design** - Provider-independent data model ready for multi-chain support
-- ✅ **Commission Engine Schema** - Ready for deterministic commission calculations
-- 🚧 **Data Ingestion** - Blockchain adapter development (next phase)
-- 🚧 **RBAC API** - Secure access control implementation (planned)
+- ✅ **Commission Engine** - Service layer with deterministic calculation logic
+- ✅ **REST API** - FastAPI with RBAC and JWT authentication
+- ✅ **Frontend Dashboard** - React + TypeScript with Material-UI
+- ✅ **Docker Deployment** - Complete containerized setup with Docker Compose
+- ✅ **Data Seeding** - MVP test data for development and testing
 
 ## Architecture
 
@@ -55,6 +57,35 @@ Aurora provides a comprehensive system for tracking validator performance and ca
 - PostgreSQL 15+ (via Docker or native)
 
 ## Quick Start
+
+### Option 1: Docker (Recommended)
+
+The easiest way to run Aurora is using Docker Compose:
+
+```bash
+# Start all services
+docker-compose up -d
+
+# Run database migrations
+docker exec aurora-backend poetry run alembic upgrade head
+
+# Seed test data
+docker exec aurora-backend poetry run python scripts/seed_mvp_data.py
+
+# View logs
+docker-compose logs -f
+```
+
+Access the application:
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:8001
+- **API Docs**: http://localhost:8001/docs
+
+**Login**: admin / admin123
+
+See [DOCKER.md](DOCKER.md) for complete Docker documentation.
+
+### Option 2: Local Development
 
 ### 1. Clone and Setup
 
