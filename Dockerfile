@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y \
     postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Poetry
-RUN pip install --no-cache-dir poetry==1.7.1
+# Install Poetry (1.8.0+ supports package-mode)
+RUN pip install --no-cache-dir poetry==1.8.5
 
 # Copy dependency files
 COPY pyproject.toml poetry.lock ./

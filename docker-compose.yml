@@ -52,7 +52,7 @@ services:
       ACCESS_TOKEN_EXPIRE_MINUTES: 43200
       # API
       API_V1_PREFIX: /api/v1
-      CORS_ORIGINS: http://localhost:3000,http://localhost
+      CORS_ORIGINS: '["http://localhost:3000", "http://localhost", "http://frontend"]'
       # Environment
       ENVIRONMENT: development
     ports:
