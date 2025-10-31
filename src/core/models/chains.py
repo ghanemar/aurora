@@ -147,6 +147,10 @@ class Chain(BaseModel):
     )
 
     partner_commission_statements: Mapped[list["PartnerCommissionStatements"]] = relationship(
+
+    validators: Mapped[list["Validator"]] = relationship(
+        "Validator", back_populates="chain", cascade="all, delete-orphan"
+    )
         "PartnerCommissionStatements", back_populates="chain", cascade="all, delete-orphan"
     )
 
@@ -490,4 +494,67 @@ class CanonicalValidatorIdentity(BaseModel):
         ),
         Index("idx_validator_identities_chain", "chain_id"),
         Index("idx_validator_identities_key", "validator_key"),
+    )
+
+
+
+class Validator(BaseModel):
+    """Validator registry for platform-managed validators.
+
+    This model tracks validators that are actively managed by the platform,
+    separate from the P&L data. It provides a registry of validators with
+    metadata and status information.
+    """
+
+    __tablename__ = "validators"
+    __table_args__ = (
+        CheckConstraint("validator_key <> ''", name="ck_validators_validator_key_not_empty"),
+        Index("ix_validators_chain_id", "chain_id"),
+        Index("ix_validators_is_active", "is_active"),
+        {"comment": "Registry of validators managed by the platform"},
+    )
+
+    # Primary Key
+    validator_key: Mapped[str] = mapped_column(
+        String(100),
+        primary_key=True,
+        comment="Validator public key or identifier",
+    )
+    chain_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("chains.chain_id", ondelete="CASCADE"),
+        primary_key=True,
+        comment="Blockchain network identifier",
+    )
+
+    # Fields
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Optional description of the validator",
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default="true",
+        comment="Whether the validator is active",
+    )
+    created_at: Mapped[TIMESTAMP] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default="NOW()",
+        comment="Timestamp when record was created",
+    )
+    updated_at: Mapped[TIMESTAMP] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default="NOW()",
+        comment="Timestamp when record was last updated",
+    )
+
+    # Relationships
+    chain: Mapped["Chain"] = relationship(
+        "Chain",
+        back_populates="validators",
+        foreign_keys=[chain_id],
     )

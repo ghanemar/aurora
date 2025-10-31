@@ -69,24 +69,26 @@ This document uses status markers to distinguish between implemented and planned
 
 ## Current Implementation Status
 
-**Completed Setup (as of 2025-10-30)**:
+**Completed Setup (as of 2025-10-31)**:
 - ✅ Python 3.11+ project with Poetry dependency management
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
 - ✅ Docker Compose with PostgreSQL 15 (port 5434) and Redis 7 (port 6381)
-- ✅ Complete ORM data layer (`src/core/models/`) with chain registry, staging, canonical, computation, and authentication models
+- ✅ Complete ORM data layer (`src/core/models/`) with chain registry, staging, canonical, computation, authentication, and validator registry models
 - ✅ Alembic migrations with management utilities
 - ✅ FastAPI application (`src/main.py`) running on port 8001 with CORS middleware and health check endpoint
-- ✅ Authentication system (`src/api/`) with JWT tokens (30-day expiration), bcrypt password hashing, and protected endpoints - **verified operational**
-- ✅ Pydantic v2 schemas (`src/api/schemas/`) for validators, partners, and agreements with strict validation
-- ✅ Repository pattern (`src/repositories/`) with generic base class and specific repositories for all entities
+- ✅ Authentication system (`src/api/`) with JWT tokens (30-day expiration), bcrypt password hashing, and protected endpoints
+- ✅ Pydantic v2 schemas (`src/api/schemas/`) for validators, partners, agreements, and validator registry with strict validation
+- ✅ Repository pattern (`src/repositories/`) with generic base class and specific repositories for all entities including validator registry
+- ✅ Service layer (`src/core/services/`) with ValidatorService for P&L and registry operations
+- ✅ API routers (`src/api/routers/`) with dashboard stats endpoints and validators registry CRUD operations
 - ✅ Test framework with async database fixtures
 - ✅ Type checking with mypy, linting with ruff and black
-- ✅ Security infrastructure (`src/core/security.py` with password hashing and JWT, `src/core/logging.py`)
+- ✅ Security infrastructure with password hashing, JWT, and structured logging
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories), #23 (MVP Phase 5a - Dashboard & Validators UI backend)
 
-**Next Phase**: MVP Phase 2b - Services & Endpoints (Issue #20)
+**Next Phase**: Additional MVP features and frontend integration
 
 ---
 
@@ -112,7 +114,8 @@ aurora/
 │   ├── ✅ script.py.mako               # Migration script template
 │   └── ✅ versions/                    # Migration files
 │       ├── ✅ cec3a80e61a4_initial_migration.py
-│       └── ✅ dff453762595_add_users_table_for_authentication.py
+│       ├── ✅ dff453762595_add_users_table_for_authentication.py
+│       └── ✅ 77e46e2d0509_add_validators_table_for_registry_.py
 ├── ✅ scripts/                        # Utility scripts
 │   ├── ✅ migrate.sh                   # Migration management script
 │   └── ✅ create_admin_user.py        # Admin user creation script
@@ -143,7 +146,7 @@ aurora/
 │   │   ├── ✅ models/                  # SQLAlchemy ORM models (IMPLEMENTED)
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ base.py              # Base model with common timestamp fields
-│   │   │   ├── ✅ chains.py            # Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity
+│   │   │   ├── ✅ chains.py            # Chain, Provider, ChainProviderMapping, CanonicalPeriod, CanonicalValidatorIdentity, Validator (registry)
 │   │   │   ├── ✅ staging.py           # IngestionRun, StagingPayload, IngestionStatus, DataType
 │   │   │   ├── ✅ canonical.py         # CanonicalValidatorFees, CanonicalValidatorMEV, CanonicalStakeRewards, CanonicalValidatorMeta
 │   │   │   ├── ✅ computation.py       # ValidatorPnL, Partners, Agreements, AgreementVersions, AgreementRules, PartnerCommissionLines, PartnerCommissionStatements
@@ -152,7 +155,9 @@ aurora/
 │   │   ├── 📋 schemas/                 # Pydantic request/response schemas (moved to src/api/schemas/)
 │   │   │   └── 📋 ... (deprecated - see src/api/schemas/ instead)
 │   │   │
-│   │   ├── 📋 services/                # Business logic services (create when implementing features)
+│   │   ├── ✅ services/                # Business logic services (PARTIALLY IMPLEMENTED)
+│   │   │   ├── ✅ __init__.py
+│   │   │   ├── ✅ validators.py         # ValidatorService for P&L and registry operations
 │   │   │   └── 📋 ... (ingestion.py, normalization.py, commission_engine.py, etc.)
 │   │   │
 │   │   ├── 📋 repositories/            # Database access layer (moved to src/repositories/)
@@ -177,9 +182,15 @@ aurora/
 │   │   ├── ✅ CONTEXT.md               # API layer documentation
 │   │   ├── ✅ dependencies.py          # Dependency injection (get_current_user, auth)
 │   │   ├── ✅ auth.py                  # Authentication endpoints (login, /me)
+│   │   ├── ✅ routers/                 # API endpoint routers (PARTIALLY IMPLEMENTED)
+│   │   │   ├── ✅ __init__.py
+│   │   │   ├── ✅ validators.py        # Validator stats and registry CRUD endpoints
+│   │   │   ├── ✅ partners.py          # Partner count and CRUD endpoints
+│   │   │   └── ✅ agreements.py        # Agreement count and CRUD endpoints
 │   │   ├── ✅ schemas/                 # Pydantic request/response schemas (IMPLEMENTED)
 │   │   │   ├── ✅ __init__.py
-│   │   │   ├── ✅ validators.py        # Validator P&L and metadata schemas
+│   │   │   ├── ✅ validators.py        # Validator P&L schemas
+│   │   │   ├── ✅ validators_registry.py # Validator registry CRUD schemas
 │   │   │   ├── ✅ partners.py          # Partner CRUD schemas
 │   │   │   └── ✅ agreements.py        # Agreement and rule schemas
 │   │   └── 📋 v1/                      # API v1 business endpoints (Phase 2+)
@@ -187,7 +198,7 @@ aurora/
 │   ├── ✅ repositories/                # Database access layer (IMPLEMENTED)
 │   │   ├── ✅ __init__.py
 │   │   ├── ✅ base.py                  # Generic BaseRepository with CRUD operations
-│   │   ├── ✅ validators.py            # ValidatorPnL and ValidatorMeta repositories
+│   │   ├── ✅ validators.py            # ValidatorPnLRepository, ValidatorRegistryRepository
 │   │   ├── ✅ partners.py              # Partner repository with soft delete
 │   │   └── ✅ agreements.py            # Agreement and AgreementRule repositories
 │   │
@@ -357,6 +368,7 @@ These directories currently exist in the codebase with working implementations:
   - ChainProviderMapping - Chain-to-provider relationships with role-based priorities
   - CanonicalPeriod - Period definitions with finalization tracking
   - CanonicalValidatorIdentity - Chain-specific validator identities (Solana/Ethereum support)
+  - Validator - Validator registry for platform management (composite PK: validator_key, chain_id)
 - `staging.py` - Staging layer models for data ingestion:
   - IngestionRun - Job execution tracking with status, timestamps, error handling (run_id, chain_id, status, records_fetched/staged)
   - StagingPayload - Raw provider data storage with JSONB payload and full traceability (payload_id, run_id, validator_key, raw_payload, response_hash)
@@ -591,18 +603,20 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.6
-**Last Updated**: 2025-10-30
+**Document Version**: 1.7
+**Last Updated**: 2025-10-31
 **Status**: Active
-**Recent Changes (v1.6 - 2025-10-30)**:
+**Recent Changes (v1.7 - 2025-10-31)**:
+- Added validators table migration (77e46e2d0509) for validator registry management
+- Added Validator ORM model to chains.py with composite primary key (validator_key, chain_id)
+- Implemented ValidatorService in src/core/services/ for P&L and registry operations
+- Added ValidatorRegistryRepository with composite key operations
+- Created validators_registry.py schemas for CRUD validation
+- Implemented 7 API endpoints: validators stats, partners count, agreements count, and validators registry CRUD
+- Updated file tree with new routers/ directory and validators_registry.py schema
+- Completed Issue #23 (MVP Phase 5a - Dashboard & Validators UI backend)
+
+**Previous Changes (v1.6 - 2025-10-30)**:
 - Updated authentication technology stack with bcrypt 4.3.0 version and 30-day JWT token expiration
 - Updated deployment ports: Backend 8001, PostgreSQL 5434, Redis 6381
 - Verified authentication system fully operational with complete end-to-end testing
-- Updated implementation status date and added operational verification confirmation
-
-**Previous Changes (v1.4 - 2025-10-26)**:
-- Added staging layer ORM models (`src/core/models/staging.py`) with IngestionRun, StagingPayload, and enums
-- Updated file tree with staging.py and test_models_staging.py
-- Expanded test suite to 89 tests (31 ORM model tests, 75% coverage)
-- Updated Current Implementation Status with completed Issue #7
-- Documented bidirectional relationships between staging and chain registry models

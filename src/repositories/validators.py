@@ -232,18 +232,139 @@ class ValidatorMetaRepository(BaseRepository[CanonicalValidatorMeta]):
 
 
 # Convenience class for accessing both validator repositories
+
+
+class ValidatorRegistryRepository(BaseRepository["Validator"]):
+    """Repository for validator registry data access.
+
+    Provides methods to query and manage validators in the platform registry.
+    This is separate from P&L tracking and focuses on validator CRUD operations.
+    """
+
+    def __init__(self, session: AsyncSession) -> None:
+        """Initialize repository with Validator model.
+
+        Args:
+            session: The async database session
+        """
+        from src.core.models.chains import Validator
+
+        super().__init__(Validator, session)
+
+    async def get_by_key_and_chain(
+        self,
+        validator_key: str,
+        chain_id: str,
+    ) -> "Validator | None":
+        """Get validator by composite key.
+
+        Args:
+            validator_key: Validator identifier
+            chain_id: Chain identifier
+
+        Returns:
+            Validator instance if found, None otherwise
+        """
+        from src.core.models.chains import Validator
+
+        stmt = select(Validator).where(
+            Validator.validator_key == validator_key,
+            Validator.chain_id == chain_id,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def get_by_chain(
+        self,
+        chain_id: str,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list["Validator"]:
+        """Get all validators for a specific chain.
+
+        Args:
+            chain_id: Chain identifier
+            offset: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of Validator instances
+        """
+        from src.core.models.chains import Validator
+
+        stmt = (
+            select(Validator)
+            .where(Validator.chain_id == chain_id)
+            .offset(offset)
+            .limit(limit)
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def update_by_composite_key(
+        self,
+        validator_key: str,
+        chain_id: str,
+        data: dict,
+    ) -> "Validator | None":
+        """Update validator by composite key.
+
+        Args:
+            validator_key: Validator identifier
+            chain_id: Chain identifier
+            data: Fields to update
+
+        Returns:
+            Updated Validator instance if found, None otherwise
+        """
+        validator = await self.get_by_key_and_chain(validator_key, chain_id)
+        if not validator:
+            return None
+
+        for key, value in data.items():
+            if hasattr(validator, key):
+                setattr(validator, key, value)
+
+        await self.session.commit()
+        await self.session.refresh(validator)
+        return validator
+
+    async def delete_by_composite_key(
+        self,
+        validator_key: str,
+        chain_id: str,
+    ) -> bool:
+        """Delete validator by composite key.
+
+        Args:
+            validator_key: Validator identifier
+            chain_id: Chain identifier
+
+        Returns:
+            True if deleted, False if not found
+        """
+        validator = await self.get_by_key_and_chain(validator_key, chain_id)
+        if not validator:
+            return False
+
+        await self.session.delete(validator)
+        await self.session.commit()
+        return True
+
+
 class ValidatorRepository:
     """Combined repository for validator data access.
 
-    Provides convenient access to both P&L and metadata repositories
+    Provides convenient access to P&L, metadata, and registry repositories
     through a single interface.
     """
 
     def __init__(self, session: AsyncSession) -> None:
-        """Initialize with both P&L and metadata repositories.
+        """Initialize with P&L, metadata, and registry repositories.
 
         Args:
             session: The async database session
         """
         self.pnl = ValidatorPnLRepository(session)
         self.meta = ValidatorMetaRepository(session)
+        self.registry = ValidatorRegistryRepository(session)

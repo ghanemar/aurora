@@ -37,6 +37,7 @@ from .chains import (
     Chain,
     ChainProviderMapping,
     Provider,
+    Validator,
 )
 from .computation import (
     AgreementRules,
@@ -66,6 +67,7 @@ __all__ = [
     "Chain",
     "Provider",
     "ChainProviderMapping",
+    "Validator",
     # Periods & Identity
     "CanonicalPeriod",
     "CanonicalValidatorIdentity",

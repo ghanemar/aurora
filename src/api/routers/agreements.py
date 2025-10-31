@@ -25,6 +25,56 @@ from src.db.session import get_db
 router = APIRouter(prefix="/agreements", tags=["agreements"])
 
 
+
+@router.get(
+    "/count",
+    summary="Get agreements count",
+    description="Get count of agreements by status",
+)
+async def get_agreements_count(
+    status_filter: str | None = Query(None, alias="status", description="Filter by agreement status (DRAFT, ACTIVE, SUSPENDED, TERMINATED)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Get count of agreements with optional status filter.
+
+    Args:
+        status_filter: Optional status filter (DRAFT, ACTIVE, SUSPENDED, TERMINATED)
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        Dictionary with count field
+
+    Raises:
+        HTTPException: If retrieval fails or invalid status provided
+    """
+    service = AgreementService(db)
+
+    try:
+        # Convert string to enum if provided
+        status_enum = None
+        if status_filter:
+            try:
+                status_enum = AgreementStatus[status_filter.upper()]
+            except KeyError:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Invalid status: {status_filter}. Must be one of: DRAFT, ACTIVE, SUSPENDED, TERMINATED",
+                )
+
+        count = await service.count_agreements(status=status_enum)
+        return {"count": count}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve agreements count: {str(e)}",
+        )
+
+
 @router.get(
     "",
     response_model=AgreementListResponse,

@@ -22,6 +22,41 @@ from src.db.session import get_db
 router = APIRouter(prefix="/partners", tags=["partners"])
 
 
+
+@router.get(
+    "/count",
+    summary="Get partners count",
+    description="Get total count of partners",
+)
+async def get_partners_count(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Get total count of partners.
+
+    Args:
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        Dictionary with count field
+
+    Raises:
+        HTTPException: If retrieval fails
+    """
+    service = PartnerService(db)
+
+    try:
+        count = await service.count_partners(is_active=True)
+        return {"count": count}
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to retrieve partners count: {str(e)}",
+        )
+
+
 @router.get(
     "",
     response_model=PartnerListResponse,
