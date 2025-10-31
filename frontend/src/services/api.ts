@@ -61,16 +61,7 @@ export const authApi = {
    * Login with username and password
    */
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    // API expects form data for OAuth2 password flow
-    const formData = new URLSearchParams();
-    formData.append('username', credentials.username);
-    formData.append('password', credentials.password);
-
-    const response = await api.post<AuthResponse>('/api/v1/auth/login', formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    });
+    const response = await api.post<AuthResponse>('/api/v1/auth/login', credentials);
     return response.data;
   },
 
