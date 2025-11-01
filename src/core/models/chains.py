@@ -147,11 +147,11 @@ class Chain(BaseModel):
     )
 
     partner_commission_statements: Mapped[list["PartnerCommissionStatements"]] = relationship(
+        "PartnerCommissionStatements", back_populates="chain", cascade="all, delete-orphan"
+    )
 
     validators: Mapped[list["Validator"]] = relationship(
         "Validator", back_populates="chain", cascade="all, delete-orphan"
-    )
-        "PartnerCommissionStatements", back_populates="chain", cascade="all, delete-orphan"
     )
 
     __table_args__ = (

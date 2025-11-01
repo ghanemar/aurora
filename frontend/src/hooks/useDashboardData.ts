@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import type { DashboardStats, ChainInfo } from '../types';
+import type { DashboardStats } from '../types';
 import { api } from '../services/api';
 import YAML from 'yaml';
 

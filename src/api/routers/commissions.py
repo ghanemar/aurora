@@ -18,6 +18,18 @@ router = APIRouter(prefix="/commissions", tags=["commissions"])
 
 
 # Response schemas for commissions
+class CommissionRecordResponse(BaseModel):
+    """Response schema for a commission record."""
+
+    commission_id: UUID = Field(..., description="Commission record UUID")
+    agreement_id: UUID = Field(..., description="Agreement UUID")
+    period_id: UUID = Field(..., description="Period UUID")
+    validator_key: str = Field(..., description="Validator public key")
+    commission_amount_native: str = Field(..., description="Commission amount in native units")
+    computed_at: str = Field(..., description="Timestamp when computed")
+
+
+# Response schemas for commissions
 class CommissionLineResponse(BaseModel):
     """Response schema for a single commission line."""
 
@@ -184,3 +196,29 @@ async def get_commission_breakdown(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get commission breakdown: {str(e)}",
         )
+
+
+@router.get(
+    "/recent",
+    response_model=list[CommissionRecordResponse],
+    summary="Get recent commission records",
+    description="Retrieve the most recent commission calculation records",
+)
+async def get_recent_commissions(
+    limit: int = Query(10, description="Maximum number of records to return", ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> list[CommissionRecordResponse]:
+    """Get recent commission records.
+
+    Args:
+        limit: Maximum number of records to return
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        List of recent commission records (empty list for now)
+    """
+    # TODO: Implement once commission_records table is populated
+    # For now, return empty list to prevent frontend errors
+    return []

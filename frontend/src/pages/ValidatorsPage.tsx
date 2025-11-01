@@ -24,10 +24,9 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { DataGrid, GridColDef, GridRenderCellParams } from '@mui/x-data-grid';
+import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '../contexts/AuthContext';
 import { validatorsService } from '../services/validators';
 import { ValidatorForm } from '../components/ValidatorForm';
 import type { Validator, ValidatorCreate, ValidatorUpdate } from '../types';
@@ -52,7 +51,6 @@ interface ChainConfig {
 
 export const ValidatorsPage: React.FC = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const [chainFilter, setChainFilter] = useState<string>('');

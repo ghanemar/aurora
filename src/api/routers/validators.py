@@ -8,7 +8,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.dependencies import get_current_user
+from src.api.dependencies import get_current_active_admin, get_current_user
 from src.api.schemas.validators import ValidatorPnLListResponse, ValidatorPnLResponse
 from src.core.models.users import User
 from src.core.services.validators import ValidatorService

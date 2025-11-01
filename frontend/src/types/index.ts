@@ -91,12 +91,14 @@ export interface Partner {
  * Agreement Types
  */
 
-export enum AgreementStatus {
-  DRAFT = 'DRAFT',
-  ACTIVE = 'ACTIVE',
-  SUSPENDED = 'SUSPENDED',
-  TERMINATED = 'TERMINATED',
-}
+export const AgreementStatus = {
+  DRAFT: 'DRAFT',
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED',
+  TERMINATED: 'TERMINATED',
+} as const;
+
+export type AgreementStatus = typeof AgreementStatus[keyof typeof AgreementStatus];
 
 export interface Agreement {
   agreement_id: string;
