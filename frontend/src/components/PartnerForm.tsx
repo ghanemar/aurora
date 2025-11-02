@@ -6,7 +6,6 @@ import {
   DialogActions,
   TextField,
   Button,
-  Alert,
 } from '@mui/material';
 import type { Partner, PartnerCreate, PartnerUpdate } from '../types';
 

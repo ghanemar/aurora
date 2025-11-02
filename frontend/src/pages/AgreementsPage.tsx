@@ -19,7 +19,6 @@ import {
 import {
   ArrowBack as BackIcon,
   Add as AddIcon,
-  Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
 } from '@mui/icons-material';
@@ -28,7 +27,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementsService } from '../services/agreements';
 import { partnersService } from '../services/partners';
-import type { Agreement, AgreementCreate, Partner, AgreementStatus } from '../types';
+import type { Agreement, AgreementStatus } from '../types';
 
 /**
  * Agreements Page
@@ -45,8 +44,6 @@ export const AgreementsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
-  const [partnerFilter, setPartnerFilter] = useState<string>('');
-  const [formOpen, setFormOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [agreementToDelete, setAgreementToDelete] = useState<Agreement | null>(null);
 
@@ -64,10 +61,9 @@ export const AgreementsPage: React.FC = () => {
     isError,
     error,
   } = useQuery({
-    queryKey: ['agreements', partnerFilter],
+    queryKey: ['agreements'],
     queryFn: () =>
       agreementsService.getAgreements({
-        partner_id: partnerFilter || undefined,
         page: 1,
         page_size: 100,
       }),
@@ -85,10 +81,6 @@ export const AgreementsPage: React.FC = () => {
   });
 
   // Handlers
-  const handleAdd = () => {
-    setFormOpen(true);
-  };
-
   const handleDelete = (agreement: Agreement) => {
     setAgreementToDelete(agreement);
     setDeleteDialogOpen(true);
@@ -211,7 +203,7 @@ export const AgreementsPage: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={handleAdd}
+            onClick={() => {/* Coming soon */}}
             disabled
           >
             Add Agreement (Coming Soon)
