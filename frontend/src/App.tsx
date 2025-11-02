@@ -6,6 +6,8 @@ import { PrivateRoute } from './components/PrivateRoute';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ValidatorsPage } from './pages/ValidatorsPage';
+import { PartnersPage } from './pages/PartnersPage';
+import { AgreementsPage } from './pages/AgreementsPage';
 import { theme } from './theme';
 
 /**
@@ -56,6 +58,22 @@ function App() {
                 element={
                   <PrivateRoute>
                     <ValidatorsPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/partners"
+                element={
+                  <PrivateRoute>
+                    <PartnersPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/agreements"
+                element={
+                  <PrivateRoute>
+                    <AgreementsPage />
                   </PrivateRoute>
                 }
               />

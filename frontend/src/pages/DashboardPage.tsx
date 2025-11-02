@@ -90,6 +90,22 @@ export const DashboardPage: React.FC = () => {
             Validators
           </Button>
 
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/partners')}
+            sx={{ mr: 2, textTransform: 'none' }}
+          >
+            Partners
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/agreements')}
+            sx={{ mr: 2, textTransform: 'none' }}
+          >
+            Agreements
+          </Button>
+
           <Typography variant="body2" sx={{ mr: 2 }}>
             {user?.full_name || user?.username}
           </Typography>

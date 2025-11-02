@@ -87,6 +87,21 @@ export interface Partner {
   updated_at: string;
 }
 
+export interface PartnerCreate {
+  partner_name: string;
+  legal_entity_name?: string;
+  contact_email: string;
+  contact_name?: string;
+}
+
+export interface PartnerUpdate {
+  partner_name?: string;
+  legal_entity_name?: string;
+  contact_email?: string;
+  contact_name?: string;
+  is_active?: boolean;
+}
+
 /**
  * Agreement Types
  */
@@ -100,6 +115,23 @@ export const AgreementStatus = {
 
 export type AgreementStatus = typeof AgreementStatus[keyof typeof AgreementStatus];
 
+export const RevenueComponent = {
+  ALL: 'ALL',
+  EXEC_FEES: 'EXEC_FEES',
+  MEV: 'MEV',
+  REWARDS: 'REWARDS',
+} as const;
+
+export type RevenueComponent = typeof RevenueComponent[keyof typeof RevenueComponent];
+
+export const AttributionMethod = {
+  CLIENT_REVENUE: 'CLIENT_REVENUE',
+  STAKE_WEIGHT: 'STAKE_WEIGHT',
+  FIXED_SHARE: 'FIXED_SHARE',
+} as const;
+
+export type AttributionMethod = typeof AttributionMethod[keyof typeof AttributionMethod];
+
 export interface Agreement {
   agreement_id: string;
   partner_id: string;
@@ -110,6 +142,55 @@ export interface Agreement {
   effective_until: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface AgreementRule {
+  rule_id: string;
+  agreement_id: string;
+  version_number: number;
+  rule_order: number;
+  chain_id: string | null;
+  validator_key: string | null;
+  revenue_component: RevenueComponent;
+  attribution_method: AttributionMethod;
+  commission_rate_bps: number;
+  floor_amount_native: string | null;
+  cap_amount_native: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AgreementCreate {
+  partner_id: string;
+  agreement_name: string;
+  status?: AgreementStatus;
+  effective_from: string;
+  effective_until?: string;
+  rules: AgreementRuleCreate[];
+}
+
+export interface AgreementUpdate {
+  agreement_name?: string;
+  status?: AgreementStatus;
+  effective_from?: string;
+  effective_until?: string;
+}
+
+export interface AgreementRuleCreate {
+  rule_order: number;
+  chain_id?: string;
+  validator_key?: string;
+  revenue_component: RevenueComponent;
+  attribution_method: AttributionMethod;
+  commission_rate_bps: number;
+  floor_amount_native?: string;
+  cap_amount_native?: string;
+}
+
+export interface AgreementWithRules extends Agreement {
+  rules: AgreementRule[];
+  partner?: Partner;
 }
 
 /**

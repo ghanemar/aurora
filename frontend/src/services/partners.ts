@@ -1,0 +1,62 @@
+import type {
+  Partner,
+  PartnerCreate,
+  PartnerUpdate,
+  PaginatedResponse,
+} from '../types';
+import { api } from './api';
+
+/**
+ * Partners Service
+ *
+ * API client for partner CRUD operations
+ */
+
+export const partnersService = {
+  /**
+   * Get all partners with pagination
+   */
+  getPartners: async (params?: {
+    page?: number;
+    page_size?: number;
+  }): Promise<PaginatedResponse<Partner>> => {
+    const response = await api.get<PaginatedResponse<Partner>>('/api/v1/partners', {
+      params,
+    });
+    return response.data;
+  },
+
+  /**
+   * Get a single partner by ID
+   */
+  getPartner: async (partner_id: string): Promise<Partner> => {
+    const response = await api.get<Partner>(`/api/v1/partners/${partner_id}`);
+    return response.data;
+  },
+
+  /**
+   * Create a new partner
+   */
+  createPartner: async (data: PartnerCreate): Promise<Partner> => {
+    const response = await api.post<Partner>('/api/v1/partners', data);
+    return response.data;
+  },
+
+  /**
+   * Update an existing partner
+   */
+  updatePartner: async (
+    partner_id: string,
+    data: PartnerUpdate
+  ): Promise<Partner> => {
+    const response = await api.put<Partner>(`/api/v1/partners/${partner_id}`, data);
+    return response.data;
+  },
+
+  /**
+   * Delete a partner
+   */
+  deletePartner: async (partner_id: string): Promise<void> => {
+    await api.delete(`/api/v1/partners/${partner_id}`);
+  },
+};
