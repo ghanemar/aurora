@@ -21,6 +21,9 @@ The project has successfully completed Issue #25 (Commissions Viewer UI) includi
 **Current Status**: Docker Deployment Complete ✅ + Issue #22 Complete ✅ + Issue #23 Complete ✅ + Issue #24 Complete ✅ + Issue #25 Complete ✅ + Documentation Updated ✅
 **Next Step**: Begin Issue #26 (Testing & Polish) - Days 16-17
 
+**POST-MVP ENHANCEMENT PLANNED**: Wallet Attribution System (Issues #29-31) - 4.5 days
+See "Upcoming Work: Wallet Attribution System" section below for complete implementation plan.
+
 ### Latest Completion
 
 #### Issue #25 - MVP Phase 5c: Commissions Viewer UI (COMPLETED 2025-11-02)
@@ -1523,6 +1526,660 @@ Once endpoints are implemented:
 - ✅ Initial migration created and tested
 - ✅ Management scripts ready (`./scripts/migrate.sh`)
 - ✅ Documentation complete (`docs/migration-guide.md`)
+
+---
+
+---
+
+## Upcoming Work: Wallet Attribution System
+
+### Overview
+
+**Goal**: Enable wallet-level commission attribution where partners introduce staking wallets, and commissions are calculated based ONLY on rewards from those specific wallets.
+
+**Business Requirements Confirmed**:
+1. Partners introduce delegator/staker wallets that stake TO our validators
+2. Commission = SUM(rewards_from_partner_introduced_wallets) × commission_rate
+3. Wallet exclusivity: One wallet belongs to only ONE partner (UNIQUE constraint)
+4. Retroactive support: Partners can upload wallets with historical introduced_date
+5. Staking lifecycle: System validates periods when wallet was actually staking
+6. Agreement-level setting: wallet_attribution_enabled applies to ALL rules in agreement
+7. Calendar integration: Users can select date ranges that auto-map to epochs
+8. Recalculation: Admin can retroactively recalculate commissions after uploading wallets
+
+**Estimated Timeline**: 4.5 developer days (Issues #29-31)
+
+---
+
+### Architecture Overview
+
+#### Data Model
+
+**New Tables:**
+
+1. **`partner_wallets`** - Tracks which wallets belong to which partners
+   - wallet_id (PK)
+   - partner_id (FK → partners)
+   - chain_id (FK → chains)
+   - wallet_address (staker/delegator public key)
+   - introduced_date (supports retroactive attribution)
+   - is_active (soft delete support)
+   - UNIQUE(chain_id, wallet_address) - wallet exclusivity
+
+2. **`canonical_stake_events`** - Tracks staking/unstaking lifecycle
+   - stake_event_id (PK)
+   - chain_id (FK → chains)
+   - period_id (FK → canonical_periods)
+   - validator_key
+   - staker_address
+   - event_type (STAKE, UNSTAKE, RESTAKE)
+   - stake_amount_native
+   - event_timestamp
+   - source_provider_id, source_payload_id (data lineage)
+
+3. **`canonical_staker_rewards_detail`** - Per-staker reward granularity
+   - staker_reward_id (PK)
+   - chain_id (FK → chains)
+   - period_id (FK → canonical_periods)
+   - validator_key
+   - staker_address
+   - reward_amount_native
+   - revenue_component (EXEC_FEES, MEV, REWARDS)
+   - source_provider_id, source_payload_id
+   - UNIQUE(chain_id, period_id, validator_key, staker_address, revenue_component)
+
+**Enhanced Tables:**
+
+1. **`agreements`** - Add wallet_attribution_enabled (agreement-level setting)
+2. **`partner_commission_lines`** - Add wallet_address (for attribution tracking)
+
+---
+
+### Implementation Plan
+
+#### **Issue #29: Database & Backend Foundation** (2 days)
+
+**Phase 1: Database Migrations**
+
+Create 3 migrations:
+1. `add_partner_wallets_table.py`
+2. `add_canonical_stake_events_table.py`
+3. `add_canonical_staker_rewards_detail_table.py`
+4. `enhance_agreements_commission_attribution.py`
+
+**Phase 2: ORM Models**
+
+Update models:
+- `src/core/models/chains.py` - Add CanonicalStakeEvent, CanonicalStakerRewardsDetail
+- `src/core/models/computation.py` - Add PartnerWallet, enhance Agreement
+
+**Phase 3: Repositories**
+
+Create repositories:
+- `src/repositories/partner_wallets.py` - PartnerWalletsRepository
+- `src/repositories/staker_rewards.py` - StakerRewardsRepository
+- `src/repositories/stake_events.py` - StakeEventsRepository
+
+**Phase 4: Services**
+
+Create/enhance services:
+- `src/core/services/partner_wallets.py` - CSV parsing, validation, wallet CRUD
+- `src/core/services/commissions.py` - Add wallet attribution logic with lifecycle validation
+
+**Key Logic: Wallet Attribution Calculation**
+```python
+async def calculate_wallet_attributed_commission(
+    partner_id: UUID,
+    period_ids: list[UUID],
+    validator_key: str | None = None,
+) -> CommissionBreakdown:
+    # 1. Get partner wallets
+    wallets = await get_partner_wallets(partner_id, is_active=True)
+
+    # 2. For each period:
+    for period_id in period_ids:
+        period = await get_period(period_id)
+
+        # 3. Filter wallets by introduced_date (retroactive support)
+        eligible_wallets = [
+            w for w in wallets
+            if w.introduced_date <= period.start_time.date()
+        ]
+
+        # 4. Check staking status (lifecycle validation)
+        for wallet in eligible_wallets:
+            is_staked = await is_wallet_staked_in_period(
+                wallet.wallet_address,
+                wallet.chain_id,
+                period_id,
+                validator_key
+            )
+
+            if not is_staked:
+                continue  # Skip if wallet not staking in this period
+
+            # 5. Get staker rewards for this wallet
+            rewards = await get_staker_rewards(
+                chain_id=wallet.chain_id,
+                period_id=period_id,
+                validator_key=validator_key,
+                staker_address=wallet.wallet_address
+            )
+
+            # 6. Calculate commission
+            for reward in rewards:
+                commission = reward.amount × rule.commission_rate_bps / 10000
+                # Create commission line...
+```
+
+**Phase 5: API Endpoints**
+
+Create new router: `src/api/routers/partner_wallets.py`
+- POST /api/v1/partners/{id}/wallets - Single wallet upload
+- POST /api/v1/partners/{id}/wallets/bulk - CSV bulk upload
+- GET /api/v1/partners/{id}/wallets - List with pagination/filters
+- DELETE /api/v1/partners/{id}/wallets/{wallet_id} - Soft delete
+- GET /api/v1/partners/{id}/wallets/export - Export CSV
+
+Enhance existing router: `src/api/routers/periods.py`
+- GET /api/v1/periods/by-date-range?chain_id=X&start_date=Y&end_date=Z
+
+Enhance existing router: `src/api/routers/commissions.py`
+- Update GET /api/v1/commissions/partners/{id}/breakdown
+  - Add query params: start_date, end_date, recalculate
+  - Support wallet attribution mode
+  - Return wallet-level breakdown
+
+**Phase 6: Test Data Seeding**
+
+Update `scripts/seed_mvp_data.py`:
+- Seed 50 partner wallets (25 per partner)
+- Seed 300 staker reward records (100 per validator × 3 epochs)
+- Seed 150 stake event records (stake/unstake lifecycle)
+- Set wallet_attribution_enabled = true for one agreement
+
+**Acceptance Criteria:**
+- ✅ Can upload partner wallets with retroactive dates
+- ✅ UNIQUE constraint prevents duplicate wallet claims
+- ✅ CSV bulk upload validates format and reports errors
+- ✅ Date range → epoch mapping works correctly
+- ✅ Wallet attribution calculation respects:
+  - introduced_date (only rewards after this date)
+  - Staking lifecycle (only rewards when wallet was staking)
+- ✅ Backward compatible (non-wallet agreements still work)
+- ✅ All tests passing with realistic seed data
+
+---
+
+#### **Issue #30: Frontend - Wallet Management UI** (1 day)
+
+**Phase 1: Partner Wallets Management Page**
+
+Create components:
+- `frontend/src/pages/PartnerWalletsPage.tsx`
+- `frontend/src/components/WalletUploadDialog.tsx` (CSV upload with preview)
+- `frontend/src/components/AddWalletDialog.tsx` (single wallet form)
+
+Features:
+- DataGrid showing all partner wallets
+- Filter by chain, active status
+- CSV bulk upload with preview (first 10 rows)
+- Single wallet add form with date picker
+- Soft delete with confirmation
+- Export wallets as CSV
+
+**Phase 2: API Service**
+
+Create service:
+- `frontend/src/services/partnerWallets.ts`
+  - getWallets(partnerId, filters)
+  - addWallet(partnerId, walletData)
+  - bulkUpload(partnerId, csvFile)
+  - deleteWallet(partnerId, walletId)
+  - exportWallets(partnerId)
+
+**Phase 3: Navigation Integration**
+
+Update `PartnersPage.tsx`:
+- Add "Manage Wallets" button to each partner row
+- Navigate to /partners/{id}/wallets
+
+**Phase 4: TypeScript Types**
+
+Update `frontend/src/types/index.ts`:
+```typescript
+export interface PartnerWallet {
+  wallet_id: string;
+  partner_id: string;
+  chain_id: string;
+  wallet_address: string;
+  introduced_date: string;
+  is_active: boolean;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WalletUploadResult {
+  created: number;
+  skipped: number;
+  errors: Array<{
+    row: number;
+    wallet_address: string;
+    error: string;
+  }>;
+}
+```
+
+**Acceptance Criteria:**
+- ✅ Can navigate to wallet management from partners page
+- ✅ Can upload CSV with validation and preview
+- ✅ CSV validation catches: invalid addresses, duplicate wallets, missing fields
+- ✅ Can add single wallet with date picker (supports past dates)
+- ✅ DataGrid shows wallets with sorting, filtering, pagination
+- ✅ Can soft-delete wallets with confirmation dialog
+- ✅ Upload result shows success/error summary
+
+---
+
+#### **Issue #31: Enhanced Commission Calculation UI** (1.5 days)
+
+**Phase 1: Enhanced CommissionsPage**
+
+Update `frontend/src/pages/CommissionsPage.tsx`:
+
+New features:
+1. Chain filter (filters validators by chain)
+2. Validator filter (optional, defaults to all)
+3. Date range picker OR manual epoch selection (toggle)
+4. Recalculate checkbox (for retroactive calculation)
+
+New state:
+```typescript
+const [selectedChain, setSelectedChain] = useState<string | null>(null);
+const [selectedValidator, setSelectedValidator] = useState<string | null>(null);
+const [dateRange, setDateRange] = useState<[Date | null, Date | null]>([null, null]);
+const [manualPeriods, setManualPeriods] = useState<Period[]>([]);
+const [useManualPeriods, setUseManualPeriods] = useState(false);
+const [recalculateMode, setRecalculateMode] = useState(false);
+```
+
+Auto-fetch epochs from date range:
+```typescript
+const { data: periodsByDate } = useQuery({
+  queryKey: ['periods-by-date', selectedChain, dateRange],
+  queryFn: () => commissionsService.getPeriodsByDateRange({
+    chain_id: selectedChain!,
+    start_date: dateRange[0]!.toISOString().split('T')[0],
+    end_date: dateRange[1]!.toISOString().split('T')[0],
+  }),
+  enabled: !useManualPeriods && !!selectedChain && !!dateRange[0] && !!dateRange[1],
+});
+```
+
+**Phase 2: Enhanced CommissionResults**
+
+Update `frontend/src/components/CommissionResults.tsx`:
+
+Add wallet breakdown table:
+```typescript
+interface CommissionResultsProps {
+  breakdown: CommissionBreakdown;
+  loading?: boolean;
+  showWalletBreakdown?: boolean;  // NEW: controlled by calculation_mode
+}
+
+// NEW: Wallet-level DataGrid
+const walletColumns: GridColDef<WalletCommissionLine>[] = [
+  { field: 'wallet_address', headerName: 'Wallet Address', width: 300 },
+  { field: 'validator_key', headerName: 'Validator', width: 250 },
+  { field: 'chain_id', headerName: 'Chain', width: 120 },
+  { field: 'epoch_number', headerName: 'Epoch', width: 100 },
+  { field: 'introduced_date', headerName: 'Introduced', width: 120 },
+  { field: 'reward_amount_native', headerName: 'Reward (SOL)', width: 150, valueGetter: formatSol },
+  { field: 'commission_rate_bps', headerName: 'Rate', width: 100, valueGetter: formatRate },
+  { field: 'commission_native', headerName: 'Commission (SOL)', width: 180, valueGetter: formatSol },
+];
+```
+
+**Phase 3: API Service Updates**
+
+Update `frontend/src/services/commissions.ts`:
+```typescript
+// NEW: Date range calculation
+getCommissionBreakdownByDateRange: async (params: {
+  partner_id: string;
+  start_date: string;
+  end_date: string;
+  validator_key?: string;
+  recalculate?: boolean;
+}): Promise<CommissionBreakdown> => {
+  const response = await api.get<CommissionBreakdown>(
+    `/api/v1/commissions/partners/${params.partner_id}/breakdown`,
+    { params }
+  );
+  return response.data;
+},
+
+// NEW: Fetch epochs by date range
+getPeriodsByDateRange: async (params: {
+  chain_id: string;
+  start_date: string;
+  end_date: string;
+}): Promise<{ periods: Period[] }> => {
+  const response = await api.get<{ periods: Period[] }>(
+    '/api/v1/periods/by-date-range',
+    { params }
+  );
+  return response.data;
+},
+```
+
+**Phase 4: Dependencies**
+
+Add date picker library:
+```bash
+npm install @mui/x-date-pickers
+npm install date-fns  # date adapter
+```
+
+**Phase 5: TypeScript Types**
+
+Update `frontend/src/types/index.ts`:
+```typescript
+export interface WalletCommissionLine {
+  wallet_address: string;
+  validator_key: string;
+  chain_id: string;
+  period_id: string;
+  epoch_number: number;
+  introduced_date: string;
+  revenue_component: string;
+  base_amount_native: string;
+  commission_rate_bps: number;
+  commission_native: string;
+}
+
+export interface CommissionBreakdown {
+  total_commission: string;
+  exec_fees_commission: string;
+  mev_commission: string;
+  rewards_commission: string;
+  calculation_mode: 'wallet_attribution' | 'total_revenue';
+  wallet_lines?: WalletCommissionLine[];  // Only present if wallet_attribution
+  lines: CommissionLine[];
+}
+```
+
+**Acceptance Criteria:**
+- ✅ Chain filter works and filters validators
+- ✅ Validator filter works (optional)
+- ✅ Date range picker auto-detects epochs from canonical_periods
+- ✅ Manual epoch selection works as alternative
+- ✅ Toggle between date range and manual selection
+- ✅ Recalculate checkbox updates database records
+- ✅ Wallet breakdown table appears for wallet-attributed agreements
+- ✅ Wallet breakdown shows: address, validator, epoch, introduced_date, rewards, commission
+- ✅ Calculation mode badge shows "Wallet Attribution" or "Total Revenue"
+- ✅ End-to-end flow works:
+  1. Upload partner wallets
+  2. Set agreement wallet_attribution_enabled = true
+  3. Select partner + date range
+  4. Calculate commission
+  5. View wallet-level breakdown
+  6. Recalculate with updated wallets
+
+---
+
+### Key Technical Decisions
+
+#### 1. Staking Lifecycle Validation
+
+**Implementation Approach:**
+```python
+async def is_wallet_staked_in_period(
+    staker_address: str,
+    chain_id: str,
+    period_id: UUID,
+    validator_key: str | None = None,
+) -> bool:
+    """
+    Check if wallet was staking in the given period.
+
+    Logic:
+    1. Get period start/end times
+    2. Find last STAKE event before period.end_time
+    3. Find first UNSTAKE event after that STAKE
+    4. If UNSTAKE.timestamp > period.start_time: wallet was staking
+    5. If no UNSTAKE found: wallet still staking
+    """
+    period = await get_period(period_id)
+
+    # Find most recent stake event before period end
+    last_stake = await db.execute(
+        select(CanonicalStakeEvent)
+        .where(
+            CanonicalStakeEvent.staker_address == staker_address,
+            CanonicalStakeEvent.chain_id == chain_id,
+            CanonicalStakeEvent.event_type == 'STAKE',
+            CanonicalStakeEvent.event_timestamp <= period.end_time,
+        )
+        .order_by(CanonicalStakeEvent.event_timestamp.desc())
+        .limit(1)
+    )
+
+    if not last_stake:
+        return False  # Never staked
+
+    # Check if unstaked before period started
+    unstake = await db.execute(
+        select(CanonicalStakeEvent)
+        .where(
+            CanonicalStakeEvent.staker_address == staker_address,
+            CanonicalStakeEvent.chain_id == chain_id,
+            CanonicalStakeEvent.event_type == 'UNSTAKE',
+            CanonicalStakeEvent.event_timestamp > last_stake.event_timestamp,
+            CanonicalStakeEvent.event_timestamp < period.start_time,
+        )
+        .limit(1)
+    )
+
+    return unstake is None  # Still staked if no unstake found
+```
+
+#### 2. Retroactive Commission Calculation
+
+**Strategy:**
+- Commission lines stored in `partner_commission_lines` table
+- When recalculate=true, DELETE old lines and INSERT new ones
+- Keep audit trail via created_at/updated_at timestamps
+- Commission statements remain immutable (audit requirement)
+
+**Implementation:**
+```python
+async def recalculate_commissions(
+    partner_id: UUID,
+    start_date: date,
+    end_date: date,
+) -> CommissionBreakdown:
+    # 1. Calculate new breakdown
+    breakdown = await calculate_commission_breakdown(...)
+
+    # 2. Delete old commission lines for this period
+    await db.execute(
+        delete(PartnerCommissionLine)
+        .where(
+            PartnerCommissionLine.partner_id == partner_id,
+            PartnerCommissionLine.period_id.in_(period_ids)
+        )
+    )
+
+    # 3. Insert new commission lines
+    for line in breakdown.wallet_lines or breakdown.lines:
+        await db.execute(
+            insert(PartnerCommissionLine).values(...)
+        )
+
+    # 4. Update agreement updated_at timestamp
+    await db.execute(
+        update(Agreement)
+        .where(Agreement.agreement_id == agreement_id)
+        .values(updated_at=func.now())
+    )
+
+    return breakdown
+```
+
+#### 3. Date Range → Epoch Mapping
+
+**Dynamic Calculation:**
+```python
+async def get_periods_by_date_range(
+    chain_id: str,
+    start_date: date,
+    end_date: date,
+) -> list[CanonicalPeriod]:
+    """
+    Find all epochs that overlap with date range.
+
+    Logic:
+    - Period overlaps if: period.start_time <= end_date AND period.end_time >= start_date
+    """
+    result = await db.execute(
+        select(CanonicalPeriod)
+        .where(
+            CanonicalPeriod.chain_id == chain_id,
+            CanonicalPeriod.start_time <= datetime.combine(end_date, time.max),
+            CanonicalPeriod.end_time >= datetime.combine(start_date, time.min),
+        )
+        .order_by(CanonicalPeriod.start_time)
+    )
+    return result.scalars().all()
+```
+
+---
+
+### Test Data Strategy
+
+#### Seed Data Requirements
+
+**Wallets:**
+- 50 total wallets (25 per partner)
+- Introduced dates: Mix of past/recent (2024-12-01 to 2025-01-15)
+- 20 wallets active across all 3 test epochs
+- 15 wallets stake/unstake mid-period (test lifecycle)
+- 15 wallets introduced after some epochs (test retroactive)
+
+**Stake Events:**
+- 150 events total (STAKE, UNSTAKE, RESTAKE)
+- Pattern: STAKE → UNSTAKE → STAKE for lifecycle testing
+- Some wallets never unstake (still staking)
+- Some wallets stake in epoch 1, unstake in epoch 2
+
+**Staker Rewards:**
+- 300 records (100 per validator × 3 epochs)
+- Varying amounts: 0.5 SOL to 5 SOL per wallet per epoch
+- Mix of revenue components: EXEC_FEES, MEV, REWARDS
+- Only rewards for wallets that were staking in that period
+
+#### Seed Script Enhancements
+
+Update `scripts/seed_mvp_data.py`:
+```python
+# 1. Seed partner wallets
+partner_1_wallets = [...]  # 25 wallets with varying introduced_dates
+partner_2_wallets = [...]  # 25 wallets
+
+# 2. Seed stake events (lifecycle)
+stake_events = [
+    # Wallet 1: Stake epoch 1, still staking
+    (wallet_1, 'STAKE', epoch_1_start, validator_1),
+
+    # Wallet 2: Stake epoch 1, unstake epoch 2, restake epoch 3
+    (wallet_2, 'STAKE', epoch_1_start, validator_1),
+    (wallet_2, 'UNSTAKE', epoch_2_mid, validator_1),
+    (wallet_2, 'STAKE', epoch_3_start, validator_1),
+    ...
+]
+
+# 3. Seed staker rewards (only when staking)
+staker_rewards = [
+    # Wallet 1: Rewards in all 3 epochs (never unstaked)
+    (wallet_1, epoch_1, validator_1, 'REWARDS', 2.5 SOL),
+    (wallet_1, epoch_2, validator_1, 'REWARDS', 3.0 SOL),
+    (wallet_1, epoch_3, validator_1, 'REWARDS', 2.8 SOL),
+
+    # Wallet 2: Rewards only in epochs 1 and 3 (unstaked in epoch 2)
+    (wallet_2, epoch_1, validator_1, 'REWARDS', 1.5 SOL),
+    (wallet_2, epoch_3, validator_1, 'REWARDS', 1.8 SOL),
+    ...
+]
+
+# 4. Set wallet attribution for one agreement
+agreement_1.wallet_attribution_enabled = True
+```
+
+---
+
+### Starting Points for Next Session
+
+When beginning implementation, start with:
+
+**1. Read Planning Documents:**
+- This HANDOFF.md section (Wallet Attribution System)
+- Review current database schema in `docs/database-schema.md`
+- Review existing commission calculation in `src/core/services/commissions.py`
+
+**2. Create GitHub Issues:**
+Run `/sc:implement` with "Create GitHub issues for wallet attribution system (Issues #29-31)"
+
+**3. Start Issue #29 (Database & Backend):**
+
+Step-by-step approach:
+```
+Day 1 Morning: Database Migrations
+- Create partner_wallets table
+- Create canonical_stake_events table
+- Create canonical_staker_rewards_detail table
+- Enhance agreements table
+
+Day 1 Afternoon: ORM Models & Repositories
+- Add models to chains.py and computation.py
+- Create PartnerWalletsRepository
+- Create StakeEventsRepository
+- Create StakerRewardsRepository
+
+Day 2 Morning: Services & Business Logic
+- Create PartnerWalletsService (CSV upload, validation)
+- Enhance CommissionService with wallet attribution
+- Implement staking lifecycle validation logic
+
+Day 2 Afternoon: API Endpoints & Tests
+- Create partner_wallets router
+- Enhance periods router (date range mapping)
+- Enhance commissions router (wallet attribution)
+- Update seed script with test data
+- Write integration tests
+```
+
+**4. Key Files to Reference:**
+- Existing commission calculation: `src/core/services/commissions.py`
+- Existing agreement rules: `src/core/models/computation.py`
+- Existing periods endpoint: `src/api/routers/periods.py`
+- CSV upload pattern: Look for similar patterns in partners.py or agreements.py
+
+**5. Testing Checklist:**
+After implementation, verify:
+- [ ] Can upload 50 partner wallets via CSV
+- [ ] UNIQUE constraint prevents duplicate wallet claims
+- [ ] Date range (2025-01-01 to 2025-01-31) correctly maps to epochs 850-852
+- [ ] Wallet attribution respects introduced_date (no rewards before this date)
+- [ ] Wallet attribution respects staking lifecycle (no rewards when unstaked)
+- [ ] Recalculate mode updates commission_lines table
+- [ ] Backward compatible: agreements with wallet_attribution_enabled=false still work
+- [ ] Frontend wallet management page shows all 50 wallets
+- [ ] Frontend commission page shows wallet breakdown table
+- [ ] End-to-end: upload wallets → calculate → see wallet-level results
 
 ---
 
