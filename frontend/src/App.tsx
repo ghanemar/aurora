@@ -8,6 +8,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ValidatorsPage } from './pages/ValidatorsPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { AgreementsPage } from './pages/AgreementsPage';
+import { CommissionsPage } from './pages/CommissionsPage';
 import { theme } from './theme';
 
 /**
@@ -74,6 +75,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <AgreementsPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/commissions"
+                element={
+                  <PrivateRoute>
+                    <CommissionsPage />
                   </PrivateRoute>
                 }
               />

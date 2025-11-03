@@ -106,6 +106,14 @@ export const DashboardPage: React.FC = () => {
             Agreements
           </Button>
 
+          <Button
+            variant="outlined"
+            onClick={() => navigate('/commissions')}
+            sx={{ mr: 2, textTransform: 'none' }}
+          >
+            Commissions
+          </Button>
+
           <Typography variant="body2" sx={{ mr: 2 }}>
             {user?.full_name || user?.username}
           </Typography>

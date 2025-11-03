@@ -194,6 +194,18 @@ export interface AgreementWithRules extends Agreement {
 }
 
 /**
+ * Period Types
+ */
+
+export interface Period {
+  period_id: string;
+  chain_id: string;
+  epoch_number: number | null;
+  start_time: string;
+  end_time: string;
+}
+
+/**
  * Commission Types
  */
 
@@ -204,6 +216,28 @@ export interface CommissionRecord {
   validator_key: string;
   commission_amount_native: string;
   computed_at: string;
+}
+
+export interface CommissionLine {
+  partner_id: string;
+  agreement_id: string;
+  rule_id: string;
+  chain_id: string;
+  period_id: string;
+  validator_key: string;
+  revenue_component: string;
+  base_amount_native: string;
+  commission_rate_bps: number;
+  commission_native: string;
+  attribution_method: string;
+}
+
+export interface CommissionBreakdown {
+  total_commission: string;
+  exec_fees_commission: string;
+  mev_commission: string;
+  rewards_commission: string;
+  lines: CommissionLine[];
 }
 
 /**

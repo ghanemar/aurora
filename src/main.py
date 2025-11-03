@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.api import auth
-from src.api.routers import agreements, commissions, partners, validators
+from src.api.routers import agreements, commissions, partners, periods, validators
 from src.config.settings import settings
 
 # Get settings
@@ -43,6 +43,7 @@ app.include_router(validators.router, prefix=settings.api_v1_prefix)
 app.include_router(partners.router, prefix=settings.api_v1_prefix)
 app.include_router(agreements.router, prefix=settings.api_v1_prefix)
 app.include_router(commissions.router, prefix=settings.api_v1_prefix)
+app.include_router(periods.router, prefix=settings.api_v1_prefix)
 
 
 # Health check endpoint
