@@ -95,8 +95,9 @@ This document uses status markers to distinguish between implemented and planned
 - ✅ Validators management page with DataGrid, filtering, CRUD operations, and form validation
 - ✅ Partners management page with full CRUD operations, form validation, and DataGrid display
 - ✅ Agreements listing page with partner name resolution, status chips, and delete confirmation
+- ✅ Commissions viewer page with partner/period selection, commission calculation UI, summary cards, and DataGrid results display
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories), #22 (Docker Compose for Full Stack), #23 (MVP Phase 5a - Dashboard & Validators UI backend), #24 (MVP Phase 5b - Partners & Agreements UI)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories), #22 (Docker Compose for Full Stack), #23 (MVP Phase 5a - Dashboard & Validators UI backend), #24 (MVP Phase 5b - Partners & Agreements UI), #25 (MVP Phase 5c - Commissions Viewer UI)
 
 **Next Phase**: Commission calculation implementation and additional MVP features
 
@@ -196,7 +197,9 @@ aurora/
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ validators.py        # Validator stats and registry CRUD endpoints
 │   │   │   ├── ✅ partners.py          # Partner count and CRUD endpoints
-│   │   │   └── ✅ agreements.py        # Agreement count and CRUD endpoints
+│   │   │   ├── ✅ agreements.py        # Agreement count and CRUD endpoints
+│   │   │   ├── ✅ commissions.py       # Commission calculation endpoints
+│   │   │   └── ✅ periods.py           # Canonical periods listing endpoint
 │   │   ├── ✅ schemas/                 # Pydantic request/response schemas (IMPLEMENTED)
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ validators.py        # Validator P&L schemas
@@ -613,10 +616,23 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.8
+**Document Version**: 1.9
 **Last Updated**: 2025-11-02
 **Status**: Active
-**Recent Changes (v1.8 - 2025-11-02)**:
+**Recent Changes (v1.9 - 2025-11-02)**:
+- Implemented Commissions Viewer UI (Issue #25 - MVP Phase 5c)
+- Added 1 new backend file:
+  - `src/api/routers/periods.py` - Canonical periods listing endpoint with pagination and chain filtering
+- Added 3 new frontend files:
+  - `frontend/src/services/commissions.ts` - Commission calculation API client
+  - `frontend/src/components/CommissionResults.tsx` - Commission results display with summary cards and DataGrid
+  - `frontend/src/pages/CommissionsPage.tsx` - Commission calculator with partner/period selection
+- Extended `frontend/src/types/index.ts` with Period, CommissionLine, and CommissionBreakdown types
+- Added Commissions navigation button to Dashboard
+- Updated App.tsx with protected route for Commissions page
+- Implemented proper MUI v7 Grid API with size prop syntax
+
+**Previous Changes (v1.8 - 2025-11-02)**:
 - Implemented Partners & Agreements UI (Issue #24 - MVP Phase 5b)
 - Added 5 new frontend files:
   - `frontend/src/services/partners.ts` - Partner CRUD API client
