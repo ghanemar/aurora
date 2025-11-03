@@ -93,8 +93,10 @@ This document uses status markers to distinguish between implemented and planned
 - ✅ React 19 frontend with TypeScript, Vite 7, Material-UI v7, React Query, and Nginx serving
 - ✅ Dashboard page with chain stats, validators count, partners count, agreements count, and recent commissions
 - ✅ Validators management page with DataGrid, filtering, CRUD operations, and form validation
+- ✅ Partners management page with full CRUD operations, form validation, and DataGrid display
+- ✅ Agreements listing page with partner name resolution, status chips, and delete confirmation
 
-**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories), #22 (Docker Compose for Full Stack), #23 (MVP Phase 5a - Dashboard & Validators UI backend)
+**GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories), #22 (Docker Compose for Full Stack), #23 (MVP Phase 5a - Dashboard & Validators UI backend), #24 (MVP Phase 5b - Partners & Agreements UI)
 
 **Next Phase**: Commission calculation implementation and additional MVP features
 
@@ -611,10 +613,23 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.7
-**Last Updated**: 2025-10-31
+**Document Version**: 1.8
+**Last Updated**: 2025-11-02
 **Status**: Active
-**Recent Changes (v1.7 - 2025-10-31)**:
+**Recent Changes (v1.8 - 2025-11-02)**:
+- Implemented Partners & Agreements UI (Issue #24 - MVP Phase 5b)
+- Added 5 new frontend files:
+  - `frontend/src/services/partners.ts` - Partner CRUD API client
+  - `frontend/src/services/agreements.ts` - Agreement and rules API client
+  - `frontend/src/pages/PartnersPage.tsx` - Full CRUD UI for partners with DataGrid
+  - `frontend/src/pages/AgreementsPage.tsx` - Agreements listing with partner name resolution
+  - `frontend/src/components/PartnerForm.tsx` - Form validation for partner create/edit
+- Extended `frontend/src/types/index.ts` with Partner and Agreement CRUD types
+- Added navigation links to Dashboard for Partners and Agreements pages
+- Updated App.tsx with protected routes for Partners and Agreements
+- Commission calculation now fully supported through agreement_rules.validator_key linkage
+
+**Previous Changes (v1.7 - 2025-10-31)**:
 - Added validators table migration (77e46e2d0509) for validator registry management
 - Added Validator ORM model to chains.py with composite primary key (validator_key, chain_id)
 - Implemented ValidatorService in src/core/services/ for P&L and registry operations
@@ -624,7 +639,7 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 - Updated file tree with new routers/ directory and validators_registry.py schema
 - Completed Issue #23 (MVP Phase 5a - Dashboard & Validators UI backend)
 
-**Previous Changes (v1.7 - 2025-11-01)**:
+**Previous Changes (v1.6 - 2025-11-01)**:
 - Completed Docker Compose full-stack deployment (Issue #22) with all containers operational
 - Added complete frontend technology stack: React 19, TypeScript 5.6+, Vite 7.1+, Material-UI v7, React Query 5.64+
 - Added @mui/x-data-grid dependency for DataGrid component
