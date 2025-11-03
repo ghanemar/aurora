@@ -10,6 +10,7 @@ This module defines SQLAlchemy ORM models for:
 - PartnerCommissionStatements: Aggregated monthly commission statements
 """
 
+import datetime
 import enum
 import uuid
 from typing import TYPE_CHECKING, Optional
@@ -287,9 +288,101 @@ class Partners(BaseModel):
         "PartnerCommissionStatements", back_populates="partner"
     )
 
+    wallets: Mapped[list["PartnerWallet"]] = relationship(
+        "PartnerWallet", back_populates="partner"
+    )
+
     __table_args__ = (
         Index("idx_partners_active", "is_active"),
         Index("idx_partners_email", "contact_email"),
+    )
+
+
+class PartnerWallet(BaseModel):
+    """Partner-introduced wallet mappings for wallet-level attribution.
+
+    Tracks which delegator/staker wallets were introduced by which partners.
+    Enables wallet-level commission calculations based on specific wallet rewards.
+
+    Attributes:
+        wallet_id: Unique wallet record identifier (UUID)
+        partner_id: Reference to partner who introduced this wallet
+        chain_id: Reference to chain
+        wallet_address: Staker/delegator wallet public key address
+        introduced_date: Date when partner introduced this wallet (supports retroactive)
+        is_active: Soft delete flag
+        notes: Optional notes about this wallet
+        created_at: Timestamp when record was created
+        updated_at: Timestamp when record was last updated
+    """
+
+    __tablename__ = "partner_wallets"
+
+    wallet_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        comment="Unique wallet record identifier",
+    )
+
+    partner_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("partners.partner_id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Reference to partner who introduced this wallet",
+    )
+
+    chain_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("chains.chain_id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Reference to chain",
+    )
+
+    wallet_address: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="Staker/delegator wallet public key address",
+    )
+
+    introduced_date: Mapped[datetime.date] = mapped_column(
+        nullable=False,
+        comment="Date when partner introduced this wallet (supports retroactive)",
+    )
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="true",
+        comment="Soft delete flag",
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+        comment="Optional notes about this wallet",
+    )
+
+    # Relationships
+    partner: Mapped["Partners"] = relationship("Partners", back_populates="wallets")
+
+    chain: Mapped["Chain"] = relationship("Chain", back_populates="partner_wallets")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "chain_id",
+            "wallet_address",
+            name="uq_partner_wallets_chain_address",
+        ),
+        CheckConstraint(
+            "wallet_address <> ''",
+            name="ck_partner_wallets_address_not_empty",
+        ),
+        Index("idx_partner_wallets_partner", "partner_id"),
+        Index("idx_partner_wallets_chain", "chain_id"),
+        Index("idx_partner_wallets_address", "wallet_address"),
+        Index("idx_partner_wallets_active", "is_active"),
     )
 
 
@@ -344,6 +437,14 @@ class Agreements(BaseModel):
         nullable=False,
         default=AgreementStatus.DRAFT,
         comment="Agreement lifecycle status",
+    )
+
+    wallet_attribution_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="false",
+        comment="Enable wallet-level commission attribution for this agreement",
     )
 
     effective_from: Mapped[TIMESTAMP] = mapped_column(
@@ -685,6 +786,12 @@ class PartnerCommissionLines(BaseModel):
         comment="Validator identifier (nullable for aggregated)",
     )
 
+    wallet_address: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        comment="Optional wallet address for granular attribution (NULL = validator-level)",
+    )
+
     revenue_component: Mapped[RevenueComponent] = mapped_column(
         nullable=False,
         comment="Revenue component this commission is based on",
@@ -785,6 +892,7 @@ class PartnerCommissionLines(BaseModel):
         Index("idx_commission_lines_partner", "partner_id"),
         Index("idx_commission_lines_chain_period", "chain_id", "period_id"),
         Index("idx_commission_lines_validator", "validator_key"),
+        Index("idx_commission_lines_wallet", "wallet_address"),
         Index("idx_commission_lines_computed", "computed_at"),
     )
 

@@ -6,8 +6,12 @@ This module defines SQLAlchemy ORM models for:
 - ChainProviderMapping: Chain-to-provider relationships
 - CanonicalPeriod: Period definitions per chain
 - CanonicalValidatorIdentity: Validator identity mappings
+- CanonicalStakeEvent: Wallet staking lifecycle events
+- CanonicalStakerRewardsDetail: Per-staker rewards granularity
 """
 
+import datetime
+import enum
 import uuid
 from typing import TYPE_CHECKING
 
@@ -22,8 +26,10 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
 )
+from sqlalchemy.dialects.postgresql import NUMERIC
 from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql import func
 
 from .base import BaseModel
 
@@ -38,10 +44,26 @@ if TYPE_CHECKING:
         AgreementRules,
         PartnerCommissionLines,
         PartnerCommissionStatements,
+        PartnerWallet,
         ValidatorPnL,
     )
     from .staging import IngestionRun, StagingPayload
 
+
+
+
+class StakeEventType(str, enum.Enum):
+    """Staking lifecycle event types.
+
+    Attributes:
+        STAKE: Wallet staked tokens to a validator
+        UNSTAKE: Wallet unstaked/withdrew tokens from a validator
+        RESTAKE: Wallet moved stake from one validator to another
+    """
+
+    STAKE = "STAKE"
+    UNSTAKE = "UNSTAKE"
+    RESTAKE = "RESTAKE"
 
 class Chain(BaseModel):
     """Blockchain network configuration.
@@ -152,6 +174,18 @@ class Chain(BaseModel):
 
     validators: Mapped[list["Validator"]] = relationship(
         "Validator", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    partner_wallets: Mapped[list["PartnerWallet"]] = relationship(
+        "PartnerWallet", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    stake_events: Mapped[list["CanonicalStakeEvent"]] = relationship(
+        "CanonicalStakeEvent", back_populates="chain", cascade="all, delete-orphan"
+    )
+
+    staker_rewards_detail: Mapped[list["CanonicalStakerRewardsDetail"]] = relationship(
+        "CanonicalStakerRewardsDetail", back_populates="chain", cascade="all, delete-orphan"
     )
 
     __table_args__ = (
@@ -412,6 +446,14 @@ class CanonicalPeriod(BaseModel):
         "PartnerCommissionStatements", back_populates="period", cascade="all, delete-orphan"
     )
 
+    stake_events: Mapped[list["CanonicalStakeEvent"]] = relationship(
+        "CanonicalStakeEvent", back_populates="period", cascade="all, delete-orphan"
+    )
+
+    staker_rewards_detail: Mapped[list["CanonicalStakerRewardsDetail"]] = relationship(
+        "CanonicalStakerRewardsDetail", back_populates="period", cascade="all, delete-orphan"
+    )
+
     __table_args__ = (
         UniqueConstraint("chain_id", "period_identifier", name="uq_canonical_periods_chain_period"),
         Index("idx_canonical_periods_chain", "chain_id"),
@@ -539,13 +581,13 @@ class Validator(BaseModel):
         server_default="true",
         comment="Whether the validator is active",
     )
-    created_at: Mapped[TIMESTAMP] = mapped_column(
+    created_at: Mapped[datetime.datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default="NOW()",
         comment="Timestamp when record was created",
     )
-    updated_at: Mapped[TIMESTAMP] = mapped_column(
+    updated_at: Mapped[datetime.datetime] = mapped_column(
         TIMESTAMP(timezone=True),
         nullable=False,
         server_default="NOW()",
@@ -557,4 +599,256 @@ class Validator(BaseModel):
         "Chain",
         back_populates="validators",
         foreign_keys=[chain_id],
+    )
+
+
+class CanonicalStakeEvent(BaseModel):
+    """Canonical stake lifecycle events for wallet attribution.
+
+    Tracks STAKE/UNSTAKE/RESTAKE events for delegator wallets, enabling
+    validation that wallets were actively staking during periods for which
+    commissions are attributed.
+
+    Attributes:
+        stake_event_id: Unique stake event identifier (UUID)
+        chain_id: Reference to chain
+        period_id: Reference to canonical period when event occurred
+        validator_key: Validator identifier where staking action occurred
+        staker_address: Staker/delegator wallet address
+        event_type: Type of staking lifecycle event (STAKE/UNSTAKE/RESTAKE)
+        stake_amount_native: Stake amount in native chain units
+        event_timestamp: Timestamp when staking event occurred
+        source_provider_id: Reference to data provider for traceability
+        source_payload_id: Reference to staging payload for traceability
+        normalized_at: Timestamp when data was normalized
+        created_at: Timestamp when record was created
+        updated_at: Timestamp when record was last updated
+    """
+
+    __tablename__ = "canonical_stake_events"
+
+    stake_event_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        comment="Unique stake event identifier",
+    )
+
+    chain_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("chains.chain_id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Reference to chain",
+    )
+
+    period_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("canonical_periods.period_id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Reference to canonical period when event occurred",
+    )
+
+    validator_key: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="Validator identifier where staking action occurred",
+    )
+
+    staker_address: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="Staker/delegator wallet address",
+    )
+
+    event_type: Mapped[StakeEventType] = mapped_column(
+        nullable=False,
+        comment="Type of staking lifecycle event",
+    )
+
+    stake_amount_native: Mapped[float] = mapped_column(
+        NUMERIC(38, 18),
+        nullable=False,
+        comment="Stake amount in native chain units (lamports, wei, etc.)",
+    )
+
+    event_timestamp: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        comment="Timestamp when staking event occurred",
+    )
+
+    source_provider_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("providers.provider_id", ondelete="RESTRICT"),
+        nullable=False,
+        comment="Reference to data provider for traceability",
+    )
+
+    source_payload_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("staging_payloads.payload_id", ondelete="RESTRICT"),
+        nullable=False,
+        comment="Reference to staging payload for traceability",
+    )
+
+    normalized_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp when data was normalized",
+    )
+
+    # Relationships
+    chain: Mapped["Chain"] = relationship("Chain", back_populates="stake_events")
+
+    period: Mapped["CanonicalPeriod"] = relationship("CanonicalPeriod", back_populates="stake_events")
+
+    provider: Mapped["Provider"] = relationship("Provider")
+
+    __table_args__ = (
+        CheckConstraint(
+            "stake_amount_native >= 0",
+            name="ck_canonical_stake_events_amount_positive",
+        ),
+        CheckConstraint(
+            "staker_address <> ''",
+            name="ck_canonical_stake_events_staker_not_empty",
+        ),
+        Index("idx_canonical_stake_events_chain_period", "chain_id", "period_id"),
+        Index("idx_canonical_stake_events_validator", "validator_key"),
+        Index("idx_canonical_stake_events_staker", "staker_address"),
+        Index("idx_canonical_stake_events_timestamp", "event_timestamp"),
+        Index("idx_canonical_stake_events_type", "event_type"),
+    )
+
+
+class CanonicalStakerRewardsDetail(BaseModel):
+    """Canonical per-staker rewards granularity for wallet attribution.
+
+    Provides per-staker, per-component reward detail enabling precise
+    wallet-level commission calculations. This table breaks down rewards
+    by revenue component (MEV, TIPS, etc.) for each staker wallet.
+
+    Attributes:
+        detail_id: Unique detail record identifier (UUID)
+        chain_id: Reference to chain
+        period_id: Reference to canonical period when reward was earned
+        validator_key: Validator identifier where staker earned rewards
+        staker_address: Staker/delegator wallet address that earned rewards
+        revenue_component: Revenue component type for granular attribution
+        reward_amount_native: Reward amount in native chain units
+        stake_amount_native: Stake amount in native chain units during this period
+        source_provider_id: Reference to data provider for traceability
+        source_payload_id: Reference to staging payload for traceability
+        normalized_at: Timestamp when data was normalized
+        created_at: Timestamp when record was created
+        updated_at: Timestamp when record was last updated
+    """
+
+    __tablename__ = "canonical_staker_rewards_detail"
+
+    detail_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+        comment="Unique detail record identifier",
+    )
+
+    chain_id: Mapped[str] = mapped_column(
+        String(50),
+        ForeignKey("chains.chain_id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Reference to chain",
+    )
+
+    period_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("canonical_periods.period_id", ondelete="CASCADE"),
+        nullable=False,
+        comment="Reference to canonical period when reward was earned",
+    )
+
+    validator_key: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="Validator identifier where staker earned rewards",
+    )
+
+    staker_address: Mapped[str] = mapped_column(
+        String(100),
+        nullable=False,
+        comment="Staker/delegator wallet address that earned rewards",
+    )
+
+    revenue_component: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        comment="Revenue component type for granular attribution",
+    )
+
+    reward_amount_native: Mapped[float] = mapped_column(
+        NUMERIC(38, 18),
+        nullable=False,
+        comment="Reward amount in native chain units (lamports, wei, etc.)",
+    )
+
+    stake_amount_native: Mapped[float] = mapped_column(
+        NUMERIC(38, 18),
+        nullable=False,
+        comment="Stake amount in native chain units during this period",
+    )
+
+    source_provider_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("providers.provider_id", ondelete="RESTRICT"),
+        nullable=False,
+        comment="Reference to data provider for traceability",
+    )
+
+    source_payload_id: Mapped[uuid.UUID] = mapped_column(
+        PG_UUID(as_uuid=True),
+        ForeignKey("staging_payloads.payload_id", ondelete="RESTRICT"),
+        nullable=False,
+        comment="Reference to staging payload for traceability",
+    )
+
+    normalized_at: Mapped[datetime.datetime] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+        comment="Timestamp when data was normalized",
+    )
+
+    # Relationships
+    chain: Mapped["Chain"] = relationship("Chain", back_populates="staker_rewards_detail")
+
+    period: Mapped["CanonicalPeriod"] = relationship("CanonicalPeriod", back_populates="staker_rewards_detail")
+
+    provider: Mapped["Provider"] = relationship("Provider")
+
+    __table_args__ = (
+        UniqueConstraint(
+            "chain_id",
+            "period_id",
+            "validator_key",
+            "staker_address",
+            "revenue_component",
+            name="uq_canonical_staker_rewards_detail_unique_record",
+        ),
+        CheckConstraint(
+            "reward_amount_native >= 0",
+            name="ck_canonical_staker_rewards_detail_reward_positive",
+        ),
+        CheckConstraint(
+            "stake_amount_native > 0",
+            name="ck_canonical_staker_rewards_detail_stake_positive",
+        ),
+        CheckConstraint(
+            "staker_address <> ''",
+            name="ck_canonical_staker_rewards_detail_staker_not_empty",
+        ),
+        Index("idx_canonical_staker_rewards_detail_chain_period", "chain_id", "period_id"),
+        Index("idx_canonical_staker_rewards_detail_validator", "validator_key"),
+        Index("idx_canonical_staker_rewards_detail_staker", "staker_address"),
+        Index("idx_canonical_staker_rewards_detail_component", "revenue_component"),
     )

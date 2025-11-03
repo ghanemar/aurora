@@ -21,8 +21,152 @@ The project has successfully completed Issue #25 (Commissions Viewer UI) includi
 **Current Status**: Docker Deployment Complete ✅ + Issue #22 Complete ✅ + Issue #23 Complete ✅ + Issue #24 Complete ✅ + Issue #25 Complete ✅ + Documentation Updated ✅
 **Next Step**: Begin Issue #26 (Testing & Polish) - Days 16-17
 
-**POST-MVP ENHANCEMENT PLANNED**: Wallet Attribution System (Issues #29-31) - 4.5 days
-See "Upcoming Work: Wallet Attribution System" section below for complete implementation plan.
+**POST-MVP ENHANCEMENT IN PROGRESS**: Wallet Attribution System (Issues #29-31) - 4.5 days
+**Issue #29 Status**: Database & Backend Foundation - 75% COMPLETE ✅
+See Issue #29 progress below and "Upcoming Work: Wallet Attribution System" section for complete implementation plan.
+
+### Latest Work-in-Progress
+
+#### Issue #29 - Database & Backend Foundation (IN PROGRESS 2025-11-03)
+
+**Status**: 🔄 75% COMPLETE - Database schema, ORM models, repositories, and partner_wallets service complete
+
+**Completed Phases:**
+
+✅ **Phase 1: Database Migrations** (ALL 4 MIGRATIONS COMPLETE)
+- ✅ Migration 1: `af2383dc7482_add_partner_wallets_table.py`
+  - Created partner_wallets table with partner_id, chain_id, wallet_address, introduced_date, is_active, notes
+  - UNIQUE constraint on (partner_id, chain_id, wallet_address)
+  - Indexes on partner_id, chain_id, wallet_address
+  - Foreign keys to partners and chains tables with CASCADE
+
+- ✅ Migration 2: `8ea71cd7ef5d_add_canonical_stake_events_table.py`
+  - Created stake_event_type ENUM ('STAKE', 'UNSTAKE', 'RESTAKE')
+  - Created canonical_stake_events table for wallet lifecycle tracking
+  - Fields: stake_event_id, chain_id, period_id, validator_key, staker_address, event_type, stake_amount_native, event_timestamp, source_provider_id, source_payload_id, normalized_at
+  - Indexes on chain_period, validator, staker, timestamp, event_type
+  - Foreign keys to chains, canonical_periods, providers, staging_payloads
+
+- ✅ Migration 3: `fdc94691839a_add_canonical_staker_rewards_detail.py`
+  - Created revenue_component ENUM ('MEV', 'TIPS', 'BLOCK_REWARDS', 'CONSENSUS_REWARDS', 'EXECUTION_REWARDS', 'OTHER')
+  - Created canonical_staker_rewards_detail table for granular per-staker rewards
+  - Fields: detail_id, chain_id, period_id, validator_key, staker_address, revenue_component, reward_amount_native, stake_amount_native, source_provider_id, source_payload_id, normalized_at
+  - UNIQUE constraint on (chain_id, period_id, validator_key, staker_address, revenue_component)
+  - Indexes on chain_period, validator, staker, component
+  - CHECK constraints for positive amounts and non-empty staker_address
+
+- ✅ Migration 4: `f215cd43bb25_add_wallet_attribution_fields_to.py`
+  - Added wallet_attribution_enabled boolean to agreements table (default false)
+  - Added wallet_address string field to partner_commission_lines table (nullable)
+  - Index on wallet_address for efficient filtering
+  - Enables wallet-level vs validator-level commission attribution
+
+✅ **Phase 2: ORM Models** (ALL COMPLETE)
+- ✅ `src/core/models/computation.py`
+  - Created PartnerWallet class with relationships to Partners and Chain
+  - Enhanced Partners class with wallets relationship
+  - Enhanced Agreements class with wallet_attribution_enabled field
+  - Enhanced PartnerCommissionLines with wallet_address field and index
+
+- ✅ `src/core/models/chains.py`
+  - Created StakeEventType enum (STAKE, UNSTAKE, RESTAKE)
+  - Created CanonicalStakeEvent class with relationships to Chain and CanonicalPeriod
+  - Created CanonicalStakerRewardsDetail class with relationships
+  - Added partner_wallets, stake_events, staker_rewards_detail relationships to Chain class
+  - Added stake_events, staker_rewards_detail relationships to CanonicalPeriod class
+
+✅ **Phase 3: Repositories** (ALL 3 COMPLETE)
+- ✅ `src/repositories/partner_wallets.py` - PartnerWalletRepository
+  - Methods: get(), get_by_address(), get_by_partner(), get_by_chain(), get_active_on_date()
+  - Batch operations: bulk_create()
+  - Status management: deactivate()
+  - Validation: count_by_partner(), exists_for_partner()
+
+- ✅ `src/repositories/stake_events.py` - StakeEventRepository
+  - Methods: get(), get_by_staker(), get_by_validator(), get_by_period(), get_by_time_range()
+  - Specialized: get_latest_stake_event()
+  - Batch operations: bulk_create()
+  - Counting: count_by_validator(), count_by_staker()
+
+- ✅ `src/repositories/staker_rewards.py` - StakerRewardsRepository
+  - Methods: get(), get_by_staker(), get_by_validator(), get_by_period()
+  - Aggregation: get_staker_total_rewards(), get_staker_rewards_by_component(), get_validator_total_staker_rewards()
+  - Batch operations: bulk_create()
+  - Counting: count_by_staker(), count_by_validator()
+
+- ✅ `src/repositories/__init__.py` - Updated exports
+
+✅ **Phase 4a: Partner Wallets Service** (COMPLETE)
+- ✅ `src/core/services/partner_wallets.py` - PartnerWalletService
+  - Wallet CRUD: create_wallet(), get_wallet(), get_wallets_by_partner(), deactivate_wallet()
+  - CSV Import: import_wallets_from_csv() with validation and duplicate handling
+  - Validation: validate_wallet_stake_history() using stake events
+  - Reporting: get_wallet_attribution_report(), count_wallets_by_partner()
+  - Business rules: Partner existence validation, duplicate wallet prevention, active status checking
+
+**Remaining Work:**
+
+⏳ **Phase 4b: Commissions Service Enhancement** (PENDING)
+- Extend `src/core/services/commissions.py` with wallet attribution logic
+- Implement calculate_wallet_attributed_commission() method
+- Add lifecycle validation using stake events
+- Support retroactive wallet introduction dates
+
+⏳ **Phase 5: API Endpoints** (PENDING)
+- Create `src/api/routers/partner_wallets.py` router
+  - POST /api/v1/partners/{id}/wallets - Single wallet upload
+  - POST /api/v1/partners/{id}/wallets/bulk - CSV bulk upload
+  - GET /api/v1/partners/{id}/wallets - List with pagination/filters
+  - DELETE /api/v1/partners/{id}/wallets/{wallet_id} - Soft delete
+  - GET /api/v1/partners/{id}/wallets/export - Export CSV
+- Enhance `src/api/routers/periods.py`
+  - GET /api/v1/periods/by-date-range?chain_id=X&start_date=Y&end_date=Z
+- Enhance `src/api/routers/commissions.py`
+  - Update GET /api/v1/commissions/partners/{id}/breakdown with wallet attribution
+
+⏳ **Phase 6: Seed Data & Testing** (PENDING)
+- Update `scripts/seed_mvp_data.py` with sample wallet data
+- Add test partner wallets for each chain
+- Add test stake events and staker rewards detail
+- Manual testing of wallet attribution flows
+
+**Files Created:**
+- `alembic/versions/af2383dc7482_add_partner_wallets_table.py`
+- `alembic/versions/8ea71cd7ef5d_add_canonical_stake_events_table.py`
+- `alembic/versions/fdc94691839a_add_canonical_staker_rewards_detail.py`
+- `alembic/versions/f215cd43bb25_add_wallet_attribution_fields_to.py`
+- `src/repositories/partner_wallets.py`
+- `src/repositories/stake_events.py`
+- `src/repositories/staker_rewards.py`
+- `src/core/services/partner_wallets.py`
+
+**Files Modified:**
+- `src/core/models/computation.py` - Added PartnerWallet, enhanced Agreements and PartnerCommissionLines
+- `src/core/models/chains.py` - Added StakeEventType enum, CanonicalStakeEvent, CanonicalStakerRewardsDetail
+- `src/repositories/__init__.py` - Added new repository exports
+
+**Database Status:**
+- ✅ All 4 migrations applied successfully
+- ✅ partner_wallets table created with proper constraints and indexes
+- ✅ canonical_stake_events table created with lifecycle tracking
+- ✅ canonical_staker_rewards_detail table created with revenue component granularity
+- ✅ agreements and partner_commission_lines tables enhanced for wallet attribution
+
+**Code Quality:**
+- ✅ All type hints properly defined
+- ✅ Ruff linting passes
+- ✅ Type errors fixed in new code (pre-existing mypy errors in Validator class not addressed)
+- ✅ Proper exception chaining with `raise ... from e`
+- ✅ Comprehensive docstrings following Google style
+
+**Next Steps:**
+1. Enhance commissions service with wallet attribution calculation logic
+2. Create partner_wallets API router with all CRUD endpoints
+3. Add CSV export functionality
+4. Update seed data with test wallets and stake events
+5. Manual testing of end-to-end wallet attribution flows
+
+**Estimated Remaining Effort**: ~4-6 hours for Phase 4b-6
 
 ### Latest Completion
 

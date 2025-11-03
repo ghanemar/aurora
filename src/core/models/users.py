@@ -7,10 +7,8 @@ accessing the admin dashboard and API.
 
 import enum
 import uuid
-from typing import Optional
 
-from sqlalchemy import Column, Enum, String, Boolean, Uuid, ForeignKey, Index
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, Column, ForeignKey, Index, String, Uuid
 
 from .base import BaseModel
 
