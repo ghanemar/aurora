@@ -139,15 +139,16 @@ class ValidatorService:
             }
         """
         from sqlalchemy import func, select
-        from src.core.models.computation import ValidatorPnL
+        from src.core.models.chains import Validator
 
-        # Query to count distinct validators per chain
+        # Query to count active validators per chain from validators registry
         stmt = (
             select(
-                ValidatorPnL.chain_id,
-                func.count(func.distinct(ValidatorPnL.validator_key)).label("count"),
+                Validator.chain_id,
+                func.count(Validator.validator_key).label("count"),
             )
-            .group_by(ValidatorPnL.chain_id)
+            .where(Validator.is_active == True)
+            .group_by(Validator.chain_id)
         )
 
         result = await self.session.execute(stmt)
