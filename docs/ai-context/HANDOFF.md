@@ -11,23 +11,37 @@ This template helps maintain:
 - **Knowledge transfer** for project handoffs
 - **Progress documentation** for ongoing development efforts
 
-## Current Session Status (2025-11-02)
+## Current Session Status (2025-11-03)
 
 ### Active Tasks
 **PRIORITY: MVP Admin Dashboard Implementation** (Epic Issue #28)
 
-The project has successfully completed Issue #25 (Commissions Viewer UI) including all documentation updates. All frontend functionality for commission calculation and viewing is now operational with Docker deployment.
+The project has successfully completed MVP Phases up to Issue #25 (Commissions Viewer UI). All core frontend functionality is operational with Docker deployment.
 
-**Current Status**: Docker Deployment Complete ✅ + Issue #22 Complete ✅ + Issue #23 Complete ✅ + Issue #24 Complete ✅ + Issue #25 Complete ✅ + Documentation Updated ✅
-**Next Step**: Begin Issue #26 (Testing & Polish) - Days 16-17
+**Current Status**:
+- ✅ Issue #22 Complete (Frontend Setup & Auth)
+- ✅ Issue #23 Complete (Dashboard & Validators UI)
+- ⚠️ Issue #24 PARTIALLY Complete (Partners CRUD ✅, Agreements Listing ✅, Agreements Add/Edit wizard → Issue #29)
+- ✅ Issue #25 Complete (Commissions Viewer UI)
+- 🔄 **Issue #29 PENDING START**: Complete Agreements Add/Edit Wizard (Issue #24 Enhancement) (1-2 days)
+  - Multi-step wizard for creating agreements with rules
+  - Immutable versioning pattern implementation
+  - Schema alignment fixes required
+  - See detailed implementation plan in Issue #29 section below
+- ⏸️ Issue #26 (Testing & Polish) - Pending Issue #29 (agreements wizard) completion
 
-**POST-MVP ENHANCEMENT IN PROGRESS**: Wallet Attribution System (Issues #29-31) - 4.5 days
-**Issue #29 Status**: Database & Backend Foundation - 75% COMPLETE ✅
-See Issue #29 progress below and "Upcoming Work: Wallet Attribution System" section for complete implementation plan.
+**POST-MVP ENHANCEMENT**: Wallet Attribution System (Future work)
+To be planned after MVP completion.
 
 ### Latest Work-in-Progress
 
-#### Issue #29 - Database & Backend Foundation (IN PROGRESS 2025-11-03)
+#### Issue #29 - Complete Agreements Add/Edit Wizard (REPLACES WALLET ATTRIBUTION - 2025-11-03)
+
+**NOTE**: This issue number conflicts with previously planned "Wallet Attribution System - Database & Backend Foundation". The wallet attribution work has been deprioritized to post-MVP. Issue #29 now refers to completing the Agreements wizard functionality.
+
+---
+
+#### Former Issue #29 - Database & Backend Foundation (DEPR ECATED - Wallet Attribution Deferred)
 
 **Status**: 🔄 75% COMPLETE - Database schema, ORM models, repositories, and partner_wallets service complete
 
@@ -273,9 +287,150 @@ See Issue #29 progress below and "Upcoming Work: Wallet Attribution System" sect
 
 ---
 
+#### Issue #29 - Complete Agreements Add/Edit Wizard (IN PROGRESS 2025-11-03)
+
+**GitHub Issue**: https://github.com/ghanemar/aurora/issues/29
+
+**Status**: 🔄 PENDING START - Completing agreements CRUD with multi-step wizard
+
+**Goal**: Finalize agreements page by implementing multi-step wizard for creating and versioning agreements with commission rules.
+
+**Context**:
+Issue #24 implemented basic agreements listing and delete functionality. The "Add Agreement" button was intentionally disabled with "Coming Soon" text as the create/edit workflow was deferred. This enhancement completes the full agreements CRUD workflow with a production-ready multi-step wizard.
+
+**User Requirements** (confirmed via planning):
+1. **Multi-step wizard**: Agreement details (Step 1) + Rules configuration (Step 2)
+2. **Immutable versioning**: Create new versions instead of direct edits for better audit trail
+3. **Basic rules UI**: Essential fields only (rule_name, revenue_component, commission_rate_bps, attribution_method)
+
+**Implementation Approach**:
+
+**Step 1: Agreement Details**
+- Partner selection (autocomplete dropdown from active partners)
+- Agreement name (required text field)
+- Effective dates (start date required, end date optional for ongoing)
+- Status selection (DRAFT, ACTIVE, SUSPENDED, TERMINATED)
+- Form validation: required fields, end date > start date if provided
+
+**Step 2: Rules Configuration**
+- Dynamic rules array (add/remove rules)
+- Each rule requires:
+  - rule_name: Descriptive name for the rule
+  - revenue_component: Dropdown (EXEC_FEES, MEV_TIPS, VOTE_REWARDS, COMMISSION)
+  - commission_rate_bps: Number input (0-10000, displayed as percentage)
+  - attribution_method: Dropdown (CLIENT_REVENUE, STAKE_WEIGHT, FIXED_SHARE)
+  - validator_key_pattern: Optional SQL LIKE pattern for filtering validators
+- Minimum 1 rule required to proceed
+- Add/remove rule buttons for dynamic management
+
+**Immutable Versioning Pattern**:
+- No inline edit functionality on existing agreements
+- "View Details" button → Read-only dialog showing agreement metadata + all rules
+- "Create New Version" button in view dialog
+  - Copies all data from existing agreement
+  - Increments version number
+  - Pre-fills wizard with existing data for modification
+  - User can modify details/rules before submitting as new version
+
+**Files to Create**:
+- `frontend/src/components/AgreementWizard.tsx` - Multi-step wizard component
+
+**Files to Update**:
+- `frontend/src/pages/AgreementsPage.tsx` - Enable add button, wire up wizard, add view dialog
+- `frontend/src/types/index.ts` - Fix schema mismatch (add rule_name, validator_key_pattern)
+- `frontend/src/services/agreements.ts` - Verify create payload matches backend schema
+
+**Schema Alignment Fixes Required**:
+
+**Current Frontend Types** (incomplete):
+```typescript
+AgreementRuleCreate {
+  agreement_id: UUID
+  version_number: number
+  revenue_component: RevenueComponent
+  commission_rate_bps: number
+  attribution_method: AttributionMethod
+  // MISSING: rule_name
+  // MISSING: validator_key_pattern
+}
+```
+
+**Backend Expects** (from `src/api/schemas/agreements.py`):
+```python
+AgreementRuleCreate:
+  agreement_id: UUID
+  version_number: int
+  rule_name: str  # ⚠️ MISSING in frontend
+  revenue_component: RevenueComponent
+  commission_rate_bps: int (0-10000)
+  attribution_method: AttributionMethod
+  validator_key_pattern: str | None  # ⚠️ MISSING in frontend
+```
+
+**TypeScript Type Fix**:
+```typescript
+export interface AgreementRuleCreate {
+  agreement_id: string;
+  version_number: number;
+  rule_name: string;  // ADD THIS
+  revenue_component: RevenueComponent;
+  commission_rate_bps: number;
+  attribution_method: AttributionMethod;
+  validator_key_pattern?: string;  // ADD THIS (optional)
+}
+```
+
+**UI Flow**:
+1. Click "Add Agreement" → Wizard opens (empty, Step 1)
+2. Fill agreement details → Click "Next"
+3. Add 1+ rules (each rule has all required fields) → Click "Submit"
+4. Backend creates agreement + rules in single transaction
+5. Success message → Grid refreshes with new agreement
+6. Click "View" on existing agreement → Read-only dialog opens
+7. Click "Create New Version" → Wizard opens pre-filled with existing data
+8. Modify fields/rules as needed → Submit as new version
+
+**Acceptance Criteria**:
+- ✅ Can create new agreement with 1+ rules
+- ✅ Can create new agreement with multiple rules
+- ✅ Can view agreement details in read-only dialog
+- ✅ Can create new version from existing agreement (immutable pattern)
+- ✅ Form validates: required fields, date ranges, commission rate 0-10000 bps
+- ✅ Wizard supports Back/Next/Submit navigation with proper step validation
+- ✅ Success/error messages display correctly
+- ✅ Frontend types match backend schema exactly
+
+**Testing Plan**:
+- Create agreement with 1 rule → verify in database
+- Create agreement with 3 rules → verify all rules saved
+- Create new version → verify version incremented, old version unchanged
+- Validate required fields → verify error messages
+- Validate date range → verify end date > start date enforcement
+- Validate commission rate → verify 0-10000 bps range enforcement
+- Delete agreement → verify status change (soft delete)
+
+**Estimated Effort**: 1-2 days
+
+**Dependencies**:
+- Backend agreements API (✅ already complete in Issue #20)
+- Partners API (✅ already complete in Issue #23)
+- Frontend setup (✅ Issue #22 complete)
+
+**Blocks**: None (enhancement to existing functionality)
+
+**Next Steps**:
+1. Update frontend types to match backend schema
+2. Create Agreement Wizard component with Stepper UI
+3. Update Agreements Page to wire up wizard
+4. Test create flow end-to-end
+5. Test immutable versioning flow
+6. Manual QA testing
+
+---
+
 #### Issue #24 - MVP Phase 5b: Partners & Agreements UI (COMPLETED 2025-11-02)
 
-**Status**: ✅ FULLY COMPLETE - Frontend Partners & Agreements CRUD operational in Docker
+**Status**: ⚠️ PARTIALLY COMPLETE - Partners CRUD complete, Agreements listing complete, Add/Edit wizard deferred to Issue #32
 
 **What was accomplished:**
 - ✅ Partners full CRUD implementation with form validation
