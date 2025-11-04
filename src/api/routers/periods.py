@@ -3,11 +3,12 @@
 This module provides REST API endpoints for canonical periods (epochs) listing.
 """
 
+import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies import get_current_user
@@ -97,3 +98,82 @@ async def list_periods(
     ]
 
     return PeriodsListResponse(total=total, data=period_responses)
+
+
+@router.get(
+    "/by-date-range",
+    response_model=PeriodsListResponse,
+    summary="Get periods by date range",
+    description="Retrieve periods that overlap with a specified date range on a chain",
+)
+async def get_periods_by_date_range(
+    chain_id: str = Query(..., description="Chain identifier"),
+    start_date: str = Query(..., description="Start date (YYYY-MM-DD format)"),
+    end_date: str = Query(..., description="End date (YYYY-MM-DD format)"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PeriodsListResponse:
+    """Get periods that overlap with the specified date range.
+
+    Args:
+        chain_id: Chain identifier
+        start_date: Start date in YYYY-MM-DD format
+        end_date: End date in YYYY-MM-DD format
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        List of periods overlapping the date range
+
+    Raises:
+        HTTPException: If date format is invalid
+    """
+    try:
+        # Parse dates
+        start_dt = datetime.datetime.strptime(start_date, "%Y-%m-%d")
+        end_dt = datetime.datetime.strptime(end_date, "%Y-%m-%d")
+
+        # Validate date range
+        if end_dt < start_dt:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="end_date must be greater than or equal to start_date",
+            )
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid date format. Expected YYYY-MM-DD: {str(e)}",
+        ) from e
+
+    # Build query to find periods that overlap with the date range
+    # A period overlaps if: period.start_time <= end_date AND period.end_time >= start_date
+    query = (
+        select(CanonicalPeriod)
+        .where(
+            and_(
+                CanonicalPeriod.chain_id == chain_id,
+                CanonicalPeriod.start_time <= end_dt,
+                CanonicalPeriod.end_time >= start_dt,
+            )
+        )
+        .order_by(CanonicalPeriod.start_time)
+    )
+
+    # Execute query
+    result = await db.execute(query)
+    periods = result.scalars().all()
+
+    # Convert to response format
+    period_responses = [
+        PeriodResponse(
+            period_id=period.period_id,
+            chain_id=period.chain_id,
+            epoch_number=period.epoch_number,
+            start_time=period.start_time.isoformat(),
+            end_time=period.end_time.isoformat(),
+        )
+        for period in periods
+    ]
+
+    return PeriodsListResponse(total=len(period_responses), data=period_responses)

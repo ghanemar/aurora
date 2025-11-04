@@ -43,17 +43,21 @@ from sqlalchemy.dialects.postgresql import insert
 from src.core.models.canonical import CanonicalValidatorFees, CanonicalValidatorMEV
 from src.core.models.chains import (
     CanonicalPeriod,
+    CanonicalStakeEvent,
+    CanonicalStakerRewardsDetail,
     CanonicalValidatorIdentity,
     Chain,
     Provider,
+    StakeEventType,
 )
 from src.core.models.computation import (
     AgreementRules,
-    AgreementStatus,
     Agreements,
+    AgreementStatus,
     AgreementVersions,
     AttributionMethod,
     Partners,
+    PartnerWallet,
     RevenueComponent,
     ValidatorPnL,
 )
@@ -792,6 +796,224 @@ async def seed_validator_pnl(
 
 
 # ============================================================================
+# Partner Wallets Seeding
+# ============================================================================
+
+
+async def seed_partner_wallets(partner_ids: list[uuid.UUID], chain_id: str) -> None:
+    """Seed partner wallets for testing wallet attribution.
+
+    Args:
+        partner_ids: List of partner UUIDs
+        chain_id: Chain identifier
+    """
+    print("\n10. Seeding Partner Wallets...")
+
+    # Example wallet addresses for testing
+    # In production, these would be actual staker wallet addresses
+    wallet_data = [
+        # Partner 1 wallets
+        {
+            "partner_id": partner_ids[0],
+            "chain_id": chain_id,
+            "wallet_address": "Stake11111111111111111111111111111111111111",
+            "introduced_date": datetime.now(UTC).date() - timedelta(days=90),
+            "notes": "Test wallet 1 for Global Stake Partners",
+        },
+        {
+            "partner_id": partner_ids[0],
+            "chain_id": chain_id,
+            "wallet_address": "Stake22222222222222222222222222222222222222",
+            "introduced_date": datetime.now(UTC).date() - timedelta(days=60),
+            "notes": "Test wallet 2 for Global Stake Partners",
+        },
+        # Partner 2 wallets
+        {
+            "partner_id": partner_ids[1],
+            "chain_id": chain_id,
+            "wallet_address": "Stake33333333333333333333333333333333333333",
+            "introduced_date": datetime.now(UTC).date() - timedelta(days=45),
+            "notes": "Test wallet for DVG",
+        },
+    ]
+
+    async with async_session_factory() as session:
+        for wallet_info in wallet_data:
+            # Check if wallet already exists
+            result = await session.execute(
+                select(PartnerWallet).where(
+                    PartnerWallet.partner_id == wallet_info["partner_id"],
+                    PartnerWallet.chain_id == wallet_info["chain_id"],
+                    PartnerWallet.wallet_address == wallet_info["wallet_address"],
+                )
+            )
+            existing = result.scalar_one_or_none()
+
+            if existing:
+                print(
+                    f"  → Wallet {wallet_info['wallet_address'][:20]}... already exists"
+                )
+            else:
+                wallet = PartnerWallet(
+                    wallet_id=uuid.uuid4(),
+                    **wallet_info,
+                    is_active=True,
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                )
+                session.add(wallet)
+                print(
+                    f"  ✓ Added wallet {wallet_info['wallet_address'][:20]}... for partner"
+                )
+
+        await session.commit()
+        print("  ✓ Partner wallets seeded")
+
+
+async def seed_stake_events(
+    chain_id: str,
+    period_ids: list[uuid.UUID],
+    validator_keys: list[str],
+    provider_id: uuid.UUID,
+) -> None:
+    """Seed stake events for wallet lifecycle tracking.
+
+    Args:
+        chain_id: Chain identifier
+        period_ids: List of period UUIDs
+        validator_keys: List of validator keys
+        provider_id: Provider UUID
+    """
+    print("\n11. Seeding Stake Events...")
+
+    # Example stake events
+    stake_events = []
+    wallet_addresses = [
+        "Stake11111111111111111111111111111111111111",
+        "Stake22222222222222222222222222222222222222",
+        "Stake33333333333333333333333333333333333333",
+    ]
+
+    async with async_session_factory() as session:
+        for period_id in period_ids:
+            for i, wallet_address in enumerate(wallet_addresses):
+                validator_key = validator_keys[i % len(validator_keys)]
+
+                # STAKE event at beginning of period
+                stake_event_id = uuid.uuid4()
+                event_timestamp = datetime.now(UTC) - timedelta(days=len(period_ids) - period_ids.index(period_id))
+
+                stake_event = CanonicalStakeEvent(
+                    stake_event_id=stake_event_id,
+                    chain_id=chain_id,
+                    period_id=period_id,
+                    validator_key=validator_key,
+                    staker_address=wallet_address,
+                    event_type=StakeEventType.STAKE,
+                    stake_amount_native=5000000000,  # 5 SOL in lamports
+                    event_timestamp=event_timestamp,
+                    source_provider_id=provider_id,
+                    source_payload_id=None,
+                    normalized_at=datetime.now(UTC),
+                    created_at=datetime.now(UTC),
+                    updated_at=datetime.now(UTC),
+                )
+
+                # Check if event exists
+                result = await session.execute(
+                    select(CanonicalStakeEvent).where(
+                        CanonicalStakeEvent.chain_id == chain_id,
+                        CanonicalStakeEvent.period_id == period_id,
+                        CanonicalStakeEvent.staker_address == wallet_address,
+                        CanonicalStakeEvent.validator_key == validator_key,
+                    )
+                )
+                existing = result.scalar_one_or_none()
+
+                if not existing:
+                    session.add(stake_event)
+                    stake_events.append(stake_event)
+
+        await session.commit()
+        print(f"  ✓ Seeded {len(stake_events)} stake events")
+
+
+async def seed_staker_rewards(
+    chain_id: str,
+    period_ids: list[uuid.UUID],
+    validator_keys: list[str],
+    provider_id: uuid.UUID,
+) -> None:
+    """Seed per-staker rewards detail for wallet attribution.
+
+    Args:
+        chain_id: Chain identifier
+        period_ids: List of period UUIDs
+        validator_keys: List of validator keys
+        provider_id: Provider UUID
+    """
+    print("\n12. Seeding Staker Rewards Detail...")
+
+    wallet_addresses = [
+        "Stake11111111111111111111111111111111111111",
+        "Stake22222222222222222222222222222222222222",
+        "Stake33333333333333333333333333333333333333",
+    ]
+
+    async with async_session_factory() as session:
+        rewards_count = 0
+
+        for period_id in period_ids:
+            for i, wallet_address in enumerate(wallet_addresses):
+                validator_key = validator_keys[i % len(validator_keys)]
+
+                # Create rewards for different components
+                components = [
+                    ("MEV", 100000000),  # 0.1 SOL
+                    ("BLOCK_REWARDS", 250000000),  # 0.25 SOL
+                    ("CONSENSUS_REWARDS", 150000000),  # 0.15 SOL
+                ]
+
+                for component, reward_amount in components:
+                    detail_id = uuid.uuid4()
+
+                    reward_detail = CanonicalStakerRewardsDetail(
+                        detail_id=detail_id,
+                        chain_id=chain_id,
+                        period_id=period_id,
+                        validator_key=validator_key,
+                        staker_address=wallet_address,
+                        revenue_component=component,
+                        reward_amount_native=reward_amount,
+                        stake_amount_native=5000000000,  # 5 SOL stake
+                        source_provider_id=provider_id,
+                        source_payload_id=None,
+                        normalized_at=datetime.now(UTC),
+                        created_at=datetime.now(UTC),
+                        updated_at=datetime.now(UTC),
+                    )
+
+                    # Check if reward detail exists
+                    result = await session.execute(
+                        select(CanonicalStakerRewardsDetail).where(
+                            CanonicalStakerRewardsDetail.chain_id == chain_id,
+                            CanonicalStakerRewardsDetail.period_id == period_id,
+                            CanonicalStakerRewardsDetail.staker_address == wallet_address,
+                            CanonicalStakerRewardsDetail.validator_key == validator_key,
+                            CanonicalStakerRewardsDetail.revenue_component == component,
+                        )
+                    )
+                    existing = result.scalar_one_or_none()
+
+                    if not existing:
+                        session.add(reward_detail)
+                        rewards_count += 1
+
+        await session.commit()
+        print(f"  ✓ Seeded {rewards_count} staker reward details")
+
+
+# ============================================================================
 # Main Execution
 # ============================================================================
 
@@ -836,6 +1058,15 @@ async def main() -> None:
         # 11. Seed ValidatorPnL
         await seed_validator_pnl(chain_id, period_ids, validator_keys)
 
+        # 12. Seed Partner Wallets
+        await seed_partner_wallets(partner_ids, chain_id)
+
+        # 13. Seed Stake Events
+        await seed_stake_events(chain_id, period_ids, validator_keys, provider_id)
+
+        # 14. Seed Staker Rewards Detail
+        await seed_staker_rewards(chain_id, period_ids, validator_keys, provider_id)
+
         print("\n" + "=" * 80)
         print("✓ All data seeded successfully!")
         print("=" * 80)
@@ -843,6 +1074,7 @@ async def main() -> None:
         print("  - Login with username: admin, password: admin123")
         print("  - View validators, partners, agreements, and P&L data")
         print("  - Test commission calculations")
+        print("  - Test wallet attribution with partner wallets")
         print("\nNote: This script is idempotent and can be run multiple times safely.")
 
     except Exception as e:
