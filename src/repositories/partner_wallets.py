@@ -5,6 +5,7 @@ mappings and wallet attribution data.
 """
 
 import datetime
+from datetime import date
 from uuid import UUID
 
 from sqlalchemy import and_, select
