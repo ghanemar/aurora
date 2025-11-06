@@ -151,6 +151,29 @@ class AgreementRepository(BaseRepository[Agreements]):
 
         return agreement
 
+    async def delete(self, id: UUID) -> bool:
+        """Delete an agreement by ID.
+
+        Overrides base method to use agreement_id instead of generic id.
+        Cascade deletes will handle related rules and versions.
+
+        Args:
+            id: The agreement UUID to delete
+
+        Returns:
+            True if the agreement was deleted, False if not found
+        """
+        stmt = select(Agreements).where(Agreements.agreement_id == id)
+        result = await self.session.execute(stmt)
+        agreement = result.scalar_one_or_none()
+
+        if agreement:
+            await self.session.delete(agreement)
+            await self.session.flush()
+            return True
+
+        return False
+
 
 class AgreementRuleRepository(BaseRepository[AgreementRules]):
     """Repository for agreement rule data access.

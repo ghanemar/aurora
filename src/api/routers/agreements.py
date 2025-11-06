@@ -311,15 +311,17 @@ async def activate_agreement(
 @router.delete(
     "/{agreement_id}",
     status_code=status.HTTP_204_NO_CONTENT,
-    summary="Deactivate agreement",
-    description="Deactivate an agreement (set status to INACTIVE) (Admin only)",
+    summary="Delete agreement",
+    description="Permanently delete an agreement and all associated rules (Admin only)",
 )
-async def deactivate_agreement(
+async def delete_agreement(
     agreement_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_admin),
 ) -> None:
-    """Deactivate an agreement.
+    """Delete an agreement permanently.
+
+    This will cascade delete all associated rules and versions.
 
     Args:
         agreement_id: Agreement UUID
@@ -327,12 +329,12 @@ async def deactivate_agreement(
         current_user: Current authenticated admin user
 
     Raises:
-        HTTPException: If agreement not found or deactivation fails
+        HTTPException: If agreement not found or deletion fails
     """
     service = AgreementService(db)
 
     try:
-        await service.deactivate_agreement(agreement_id)
+        await service.delete_agreement(agreement_id)
 
     except ValueError as e:
         raise HTTPException(
@@ -343,7 +345,7 @@ async def deactivate_agreement(
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to deactivate agreement: {str(e)}",
+            detail=f"Failed to delete agreement: {str(e)}",
         )
 
 

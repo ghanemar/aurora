@@ -257,6 +257,40 @@ class AgreementService:
 
         return updated
 
+    async def delete_agreement(self, agreement_id: UUID) -> bool:
+        """Delete an agreement permanently.
+
+        This will cascade delete all associated rules and versions.
+
+        Args:
+            agreement_id: Agreement UUID
+
+        Returns:
+            True if deleted successfully
+
+        Raises:
+            ValueError: If agreement not found or cannot be deleted
+        """
+        # Check if agreement exists
+        agreement = await self.agreement_repo.get(agreement_id)
+        if not agreement:
+            raise ValueError(f"Agreement with ID {agreement_id} not found")
+
+        # Only allow deletion of DRAFT agreements or force delete
+        # This is a safety check - you can remove this if you want to allow any deletion
+        # if agreement.status == AgreementStatus.ACTIVE:
+        #     raise ValueError("Cannot delete ACTIVE agreements. Deactivate first.")
+
+        # Delete the agreement (cascade will handle rules and versions)
+        deleted = await self.agreement_repo.delete(agreement_id)
+
+        if not deleted:
+            raise ValueError(f"Failed to delete agreement with ID {agreement_id}")
+
+        await self.session.commit()
+
+        return deleted
+
     async def add_rule(self, rule_data: AgreementRuleCreate) -> AgreementRules:
         """Add a commission rule to an agreement.
 
