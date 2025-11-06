@@ -57,6 +57,7 @@ class BaseRepository(Generic[ModelType]):
         offset: int = 0,
         limit: int = 100,
         order_by: str | None = None,
+        include_deleted: bool = False,
     ) -> list[ModelType]:
         """Get multiple records with pagination.
 
@@ -64,11 +65,16 @@ class BaseRepository(Generic[ModelType]):
             offset: Number of records to skip (default: 0)
             limit: Maximum number of records to return (default: 100)
             order_by: Column name to order by (default: None)
+            include_deleted: Include soft-deleted records (default: False)
 
         Returns:
             List of model instances
         """
         stmt = select(self.model).offset(offset).limit(limit)
+
+        # Exclude soft-deleted records by default
+        if not include_deleted and hasattr(self.model, 'deleted_at'):
+            stmt = stmt.where(self.model.deleted_at.is_(None))
 
         if order_by:
             stmt = stmt.order_by(getattr(self.model, order_by))
@@ -76,16 +82,21 @@ class BaseRepository(Generic[ModelType]):
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def count(self, **filters: Any) -> int:
+    async def count(self, include_deleted: bool = False, **filters: Any) -> int:
         """Count total records matching the given filters.
 
         Args:
+            include_deleted: Include soft-deleted records (default: False)
             **filters: Column name and value pairs to filter by
 
         Returns:
             Count of matching records
         """
         stmt = select(func.count()).select_from(self.model)
+
+        # Exclude soft-deleted records by default
+        if not include_deleted and hasattr(self.model, 'deleted_at'):
+            stmt = stmt.where(self.model.deleted_at.is_(None))
 
         for key, value in filters.items():
             if hasattr(self.model, key):
@@ -152,6 +163,7 @@ class BaseRepository(Generic[ModelType]):
         offset: int = 0,
         limit: int = 100,
         order_by: str | None = None,
+        include_deleted: bool = False,
         **filters: Any,
     ) -> list[ModelType]:
         """Get multiple records filtered by column values with pagination.
@@ -160,12 +172,17 @@ class BaseRepository(Generic[ModelType]):
             offset: Number of records to skip (default: 0)
             limit: Maximum number of records to return (default: 100)
             order_by: Column name to order by (default: None)
+            include_deleted: Include soft-deleted records (default: False)
             **filters: Column name and value pairs to filter by
 
         Returns:
             List of model instances matching the filters
         """
         stmt = select(self.model).offset(offset).limit(limit)
+
+        # Exclude soft-deleted records by default
+        if not include_deleted and hasattr(self.model, 'deleted_at'):
+            stmt = stmt.where(self.model.deleted_at.is_(None))
 
         for key, value in filters.items():
             if hasattr(self.model, key):

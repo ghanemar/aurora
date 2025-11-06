@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.schemas.partners import PartnerCreate, PartnerUpdate
 from src.core.models.computation import Partners
+from src.repositories.agreements import AgreementRepository
 from src.repositories.partners import PartnerRepository
 
 
@@ -28,6 +29,7 @@ class PartnerService:
         """
         self.session = session
         self.partner_repo = PartnerRepository(session)
+        self.agreement_repo = AgreementRepository(session)
 
     async def create_partner(self, partner_data: PartnerCreate) -> Partners:
         """Create a new partner with validation.
@@ -170,29 +172,92 @@ class PartnerService:
 
         return updated_partner
 
-    async def delete_partner(self, partner_id: UUID) -> bool:
-        """Soft delete a partner (set is_active = False).
+    async def toggle_partner_status(self, partner_id: UUID) -> Partners:
+        """Toggle partner's active status.
 
         Args:
             partner_id: Partner UUID
 
         Returns:
-            True if partner was deactivated, False if not found
+            Updated Partner instance
 
         Raises:
-            ValueError: If partner has active agreements
+            ValueError: If partner not found
         """
-        # Check if partner exists
         partner = await self.partner_repo.get(partner_id)
         if not partner:
-            return False
+            raise ValueError(f"Partner with ID {partner_id} not found")
 
-        # Check for active agreements (would be handled by AgreementService)
-        # For now, we'll just set is_active to False
-        updated = await self.partner_repo.update(partner_id, is_active=False)
+        updated_partner = await self.partner_repo.toggle_active_status(partner_id)
+        if not updated_partner:
+            raise ValueError(f"Failed to toggle status for partner with ID {partner_id}")
 
-        if updated:
-            await self.session.commit()
-            return True
+        await self.session.commit()
+        return updated_partner
 
-        return False
+    async def get_partner_deletion_info(self, partner_id: UUID) -> dict[str, int]:
+        """Get information about what will be affected by partner deletion.
+
+        Args:
+            partner_id: Partner UUID
+
+        Returns:
+            Dictionary with counts of related entities that will be deleted
+
+        Raises:
+            ValueError: If partner not found
+        """
+        partner = await self.partner_repo.get(partner_id)
+        if not partner:
+            raise ValueError(f"Partner with ID {partner_id} not found")
+
+        # Count agreements
+        agreement_count = await self.agreement_repo.count_by_partner(partner_id, include_deleted=False)
+
+        return {
+            "agreement_count": agreement_count,
+        }
+
+    async def delete_partner(self, partner_id: UUID, cascade: bool = False) -> dict[str, int]:
+        """Soft delete a partner with optional cascade deletion of agreements.
+
+        Args:
+            partner_id: Partner UUID
+            cascade: If True, also soft-delete all associated agreements
+
+        Returns:
+            Dictionary with counts of deleted entities
+
+        Raises:
+            ValueError: If partner not found or has agreements without cascade
+        """
+        # Check if partner exists and is not already deleted
+        partner = await self.partner_repo.get(partner_id, include_deleted=False)
+        if not partner:
+            raise ValueError(f"Partner with ID {partner_id} not found")
+
+        # Check for agreements
+        agreement_count = await self.agreement_repo.count_by_partner(partner_id, include_deleted=False)
+
+        if agreement_count > 0 and not cascade:
+            raise ValueError(
+                f"Cannot delete partner: {agreement_count} agreement(s) exist. "
+                "Use cascade=True to delete partner and all associated agreements."
+            )
+
+        # Soft-delete agreements if cascade is requested
+        deleted_agreements = 0
+        if cascade and agreement_count > 0:
+            deleted_agreements = await self.agreement_repo.soft_delete_by_partner(partner_id)
+
+        # Soft-delete the partner
+        success = await self.partner_repo.delete(partner_id)
+        if not success:
+            raise ValueError(f"Failed to delete partner with ID {partner_id}")
+
+        await self.session.commit()
+
+        return {
+            "partner_deleted": 1,
+            "agreements_deleted": deleted_agreements,
+        }

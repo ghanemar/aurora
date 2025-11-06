@@ -4,6 +4,7 @@ This module provides repository class for accessing partner
 (introducer) information.
 """
 
+from datetime import UTC, datetime
 from uuid import UUID
 
 from sqlalchemy import select
@@ -29,18 +30,23 @@ class PartnerRepository(BaseRepository[Partners]):
         """
         super().__init__(Partners, session)
 
-    async def get(self, id: UUID) -> Partners | None:
+    async def get(self, id: UUID, include_deleted: bool = False) -> Partners | None:
         """Get a partner by ID.
 
         Overrides base method to use partner_id instead of generic id.
 
         Args:
             id: The partner UUID
+            include_deleted: Include soft-deleted partners (default: False)
 
         Returns:
             Partners instance if found, None otherwise
         """
         stmt = select(Partners).where(Partners.partner_id == id)
+
+        if not include_deleted:
+            stmt = stmt.where(Partners.deleted_at.is_(None))
+
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -57,13 +63,31 @@ class PartnerRepository(BaseRepository[Partners]):
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
+    async def get_by_name(self, partner_name: str, include_deleted: bool = False) -> Partners | None:
+        """Get a partner by exact name match.
+
+        Args:
+            partner_name: The partner name to search for
+            include_deleted: Include soft-deleted partners (default: False)
+
+        Returns:
+            Partners instance if found, None otherwise
+        """
+        stmt = select(Partners).where(Partners.partner_name == partner_name)
+
+        if not include_deleted:
+            stmt = stmt.where(Partners.deleted_at.is_(None))
+
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
     async def get_active_partners(
         self,
         *,
         offset: int = 0,
         limit: int = 100,
     ) -> list[Partners]:
-        """Get all active partners.
+        """Get all active partners (not deleted).
 
         Args:
             offset: Number of records to skip (default: 0)
@@ -74,7 +98,7 @@ class PartnerRepository(BaseRepository[Partners]):
         """
         stmt = (
             select(Partners)
-            .where(Partners.is_active.is_(True))
+            .where(Partners.is_active.is_(True), Partners.deleted_at.is_(None))
             .order_by(Partners.partner_name)
             .offset(offset)
             .limit(limit)
@@ -87,6 +111,7 @@ class PartnerRepository(BaseRepository[Partners]):
         search_term: str,
         *,
         active_only: bool = False,
+        include_deleted: bool = False,
         offset: int = 0,
         limit: int = 100,
     ) -> list[Partners]:
@@ -95,6 +120,7 @@ class PartnerRepository(BaseRepository[Partners]):
         Args:
             search_term: The search term to match against partner name
             active_only: Only include active partners (default: False)
+            include_deleted: Include soft-deleted partners (default: False)
             offset: Number of records to skip (default: 0)
             limit: Maximum number of records to return (default: 100)
 
@@ -102,6 +128,9 @@ class PartnerRepository(BaseRepository[Partners]):
             List of matching Partners instances
         """
         stmt = select(Partners).where(Partners.partner_name.ilike(f"%{search_term}%"))
+
+        if not include_deleted:
+            stmt = stmt.where(Partners.deleted_at.is_(None))
 
         if active_only:
             stmt = stmt.where(Partners.is_active.is_(True))
@@ -145,7 +174,7 @@ class PartnerRepository(BaseRepository[Partners]):
         return partner
 
     async def delete(self, id: UUID) -> bool:
-        """Soft-delete a partner by setting is_active to False.
+        """Soft-delete a partner by setting deleted_at timestamp.
 
         Overrides base method to use soft delete instead of hard delete.
 
@@ -155,13 +184,27 @@ class PartnerRepository(BaseRepository[Partners]):
         Returns:
             True if partner was soft-deleted, False if not found
         """
-        partner = await self.update(id, is_active=False)
+        partner = await self.update(id, deleted_at=datetime.now(UTC))
         return partner is not None
 
+    async def toggle_active_status(self, id: UUID) -> Partners | None:
+        """Toggle partner's active status.
+
+        Args:
+            id: The partner UUID
+
+        Returns:
+            The updated Partners instance if found, None otherwise
+        """
+        partner = await self.get(id, include_deleted=False)
+        if partner:
+            partner = await self.update(id, is_active=not partner.is_active)
+        return partner
+
     async def count_active(self) -> int:
-        """Count total active partners.
+        """Count total active partners (not deleted).
 
         Returns:
             Count of active partners
         """
-        return await self.count(is_active=True)
+        return await self.count(is_active=True, deleted_at=None)
