@@ -28,6 +28,7 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
   ContentCopy as CopyIcon,
+  CheckCircle as ActivateIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -110,6 +111,14 @@ export const AgreementsPage: React.FC = () => {
     },
   });
 
+  // Activate agreement mutation
+  const activateMutation = useMutation({
+    mutationFn: (agreement_id: string) => agreementsService.activateAgreement(agreement_id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+    },
+  });
+
   // Handlers
   const handleAddNew = () => {
     setInitialWizardData(undefined);
@@ -127,6 +136,12 @@ export const AgreementsPage: React.FC = () => {
       setInitialWizardData(selectedAgreement);
       setViewDialogOpen(false);
       setWizardOpen(true);
+    }
+  };
+
+  const handleActivate = (agreement: Agreement) => {
+    if (window.confirm(`Activate agreement "${agreement.agreement_name}"? This will make it active and start commission calculations.`)) {
+      activateMutation.mutate(agreement.agreement_id);
     }
   };
 
@@ -217,7 +232,7 @@ export const AgreementsPage: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 160,
       sortable: false,
       renderCell: (params: GridRenderCellParams<Agreement>) => (
         <Box>
@@ -228,6 +243,16 @@ export const AgreementsPage: React.FC = () => {
           >
             <ViewIcon fontSize="small" />
           </IconButton>
+          {params.row.status === 'DRAFT' && (
+            <IconButton
+              size="small"
+              onClick={() => handleActivate(params.row)}
+              title="Activate Agreement"
+              color="success"
+            >
+              <ActivateIcon fontSize="small" />
+            </IconButton>
+          )}
           <IconButton
             size="small"
             onClick={() => handleDelete(params.row)}
@@ -462,6 +487,28 @@ export const AgreementsPage: React.FC = () => {
           onClose={() => createMutation.reset()}
         >
           Failed to create agreement: {createMutation.error?.message}
+        </Alert>
+      )}
+
+      {/* Activate mutation error */}
+      {activateMutation.isError && (
+        <Alert
+          severity="error"
+          sx={{ position: 'fixed', bottom: 16, right: 16, maxWidth: 400 }}
+          onClose={() => activateMutation.reset()}
+        >
+          Failed to activate agreement: {activateMutation.error?.message}
+        </Alert>
+      )}
+
+      {/* Activate mutation success */}
+      {activateMutation.isSuccess && (
+        <Alert
+          severity="success"
+          sx={{ position: 'fixed', bottom: 16, right: 16, maxWidth: 400 }}
+          onClose={() => activateMutation.reset()}
+        >
+          Agreement activated successfully!
         </Alert>
       )}
     </Box>
