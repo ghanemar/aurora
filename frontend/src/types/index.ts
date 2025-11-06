@@ -258,6 +258,62 @@ export interface DashboardStats {
 }
 
 /**
+ * Partner Wallet Types
+ */
+
+export interface PartnerWallet {
+  wallet_id: string;
+  partner_id: string;
+  chain_id: string;
+  wallet_address: string;
+  introduced_date: string; // YYYY-MM-DD format
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PartnerWalletCreate {
+  chain_id: string;
+  wallet_address: string;
+  introduced_date: string;
+  notes?: string;
+}
+
+export interface PartnerWalletUpdate {
+  chain_id?: string;
+  wallet_address?: string;
+  introduced_date?: string;
+  notes?: string;
+  is_active?: boolean;
+}
+
+export interface PartnerWalletListResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  wallets: PartnerWallet[];
+}
+
+export interface BulkUploadResult {
+  success: number;
+  skipped: number;
+  errors: Array<{
+    row: number;
+    wallet_address?: string;
+    error: string;
+    existing_partner?: string;
+  }>;
+}
+
+export interface WalletValidationResult {
+  valid: boolean;
+  stake_events_count: number;
+  first_stake_date: string | null;
+  last_stake_date: string | null;
+}
+
+/**
  * Paginated List Response
  */
 

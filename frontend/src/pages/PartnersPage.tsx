@@ -21,6 +21,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Wallet as WalletIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -118,6 +119,10 @@ export const PartnersPage: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
+  const handleManageWallets = (partner: Partner) => {
+    navigate(`/partners/${partner.partner_id}/wallets`);
+  };
+
   const confirmDelete = () => {
     if (partnerToDelete) {
       deleteMutation.mutate(partnerToDelete.partner_id);
@@ -176,10 +181,18 @@ export const PartnersPage: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 120,
+      width: 160,
       sortable: false,
       renderCell: (params: GridRenderCellParams<Partner>) => (
         <Box>
+          <IconButton
+            size="small"
+            onClick={() => handleManageWallets(params.row)}
+            title="Manage Wallets"
+            color="primary"
+          >
+            <WalletIcon fontSize="small" />
+          </IconButton>
           <IconButton
             size="small"
             onClick={() => handleEdit(params.row)}

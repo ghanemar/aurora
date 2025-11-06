@@ -25,6 +25,7 @@ from src.api.schemas.partner_wallets import (
     PartnerWalletCreate,
     PartnerWalletListResponse,
     PartnerWalletResponse,
+    PartnerWalletUpdate,
     WalletValidationResponse,
 )
 from src.core.models.users import User
@@ -83,6 +84,62 @@ async def create_wallet(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create wallet: {str(e)}",
+        ) from e
+
+
+@router.put(
+    "/{wallet_id}",
+    response_model=PartnerWalletResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Update a partner wallet",
+    description="Update wallet address, chain, introduced date, notes, or active status",
+)
+async def update_wallet(
+    partner_id: UUID,
+    wallet_id: UUID,
+    wallet_data: PartnerWalletUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> PartnerWalletResponse:
+    """Update an existing partner wallet.
+
+    Args:
+        partner_id: Partner UUID
+        wallet_id: Wallet UUID to update
+        wallet_data: Wallet update data (all fields optional)
+        db: Database session
+        current_user: Current authenticated user
+
+    Returns:
+        Updated partner wallet
+
+    Raises:
+        HTTPException: If validation fails or update fails
+    """
+    service = PartnerWalletService(db)
+
+    try:
+        wallet = await service.update_wallet(
+            partner_id=partner_id,
+            wallet_id=wallet_id,
+            chain_id=wallet_data.chain_id,
+            wallet_address=wallet_data.wallet_address,
+            introduced_date=wallet_data.introduced_date,
+            notes=wallet_data.notes,
+            is_active=wallet_data.is_active,
+        )
+
+        return PartnerWalletResponse.model_validate(wallet)
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        ) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update wallet: {str(e)}",
         ) from e
 
 

@@ -183,6 +183,51 @@ class PartnerWalletRepository(BaseRepository[PartnerWallet]):
 
         return wallets
 
+    async def update(
+        self,
+        wallet_id: UUID,
+        wallet_address: str | None = None,
+        chain_id: str | None = None,
+        introduced_date: date | None = None,
+        notes: str | None = None,
+        is_active: bool | None = None,
+    ) -> PartnerWallet | None:
+        """Update a partner wallet's fields.
+
+        Args:
+            wallet_id: The wallet UUID to update
+            wallet_address: New wallet address (optional)
+            chain_id: New chain ID (optional)
+            introduced_date: New introduced date (optional)
+            notes: New notes (optional)
+            is_active: New active status (optional)
+
+        Returns:
+            The updated PartnerWallet instance if found, None otherwise
+        """
+        stmt = select(PartnerWallet).where(
+            PartnerWallet.wallet_id == wallet_id
+        ).with_for_update()
+        result = await self.session.execute(stmt)
+        wallet = result.scalar_one_or_none()
+
+        if wallet:
+            if wallet_address is not None:
+                wallet.wallet_address = wallet_address
+            if chain_id is not None:
+                wallet.chain_id = chain_id
+            if introduced_date is not None:
+                wallet.introduced_date = introduced_date
+            if notes is not None:
+                wallet.notes = notes
+            if is_active is not None:
+                wallet.is_active = is_active
+
+            await self.session.flush()
+            await self.session.refresh(wallet)
+
+        return wallet
+
     async def deactivate(self, wallet_id: UUID) -> PartnerWallet | None:
         """Deactivate a partner wallet by setting is_active to False.
 

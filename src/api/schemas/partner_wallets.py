@@ -45,6 +45,21 @@ class PartnerWalletUpdate(BaseModel):
     All fields are optional to allow partial updates.
     """
 
+    chain_id: str | None = Field(
+        None,
+        min_length=1,
+        max_length=50,
+        description="Chain identifier (e.g., 'solana', 'ethereum')",
+    )
+    wallet_address: str | None = Field(
+        None,
+        min_length=1,
+        max_length=200,
+        description="Wallet address on the blockchain",
+    )
+    introduced_date: datetime.date | None = Field(
+        None, description="Date wallet was introduced by partner"
+    )
     notes: str | None = Field(
         None, max_length=500, description="Optional notes about this wallet"
     )

@@ -94,6 +94,70 @@ class PartnerWalletService:
         await self.session.commit()
         return wallet
 
+    async def update_wallet(
+        self,
+        partner_id: UUID,
+        wallet_id: UUID,
+        chain_id: str | None = None,
+        wallet_address: str | None = None,
+        introduced_date: datetime.date | None = None,
+        notes: str | None = None,
+        is_active: bool | None = None,
+    ) -> PartnerWallet:
+        """Update an existing partner wallet with validation.
+
+        Args:
+            partner_id: Partner UUID (for ownership verification)
+            wallet_id: Wallet UUID to update
+            chain_id: New chain identifier (optional)
+            wallet_address: New wallet address (optional)
+            introduced_date: New introduced date (optional)
+            notes: New notes (optional)
+            is_active: New active status (optional)
+
+        Returns:
+            Updated PartnerWallet instance
+
+        Raises:
+            ValueError: If validation fails or wallet not found
+        """
+        # Get existing wallet
+        wallet = await self.wallet_repo.get(wallet_id)
+        if not wallet:
+            raise ValueError(f"Wallet with ID {wallet_id} not found")
+
+        # Verify ownership
+        if wallet.partner_id != partner_id:
+            raise ValueError(f"Wallet {wallet_id} does not belong to partner {partner_id}")
+
+        # If updating wallet address or chain, check for duplicates
+        if wallet_address is not None or chain_id is not None:
+            new_address = wallet_address if wallet_address is not None else wallet.wallet_address
+            new_chain = chain_id if chain_id is not None else wallet.chain_id
+
+            # Only check if address or chain actually changed
+            if new_address != wallet.wallet_address or new_chain != wallet.chain_id:
+                existing = await self.wallet_repo.get_by_address(new_chain, new_address)
+                if existing and existing.wallet_id != wallet_id:
+                    other_partner = await self.partner_repo.get(existing.partner_id)
+                    raise ValueError(
+                        f"Wallet {new_address} already registered to partner "
+                        f"'{other_partner.partner_name if other_partner else 'Unknown'}' on {new_chain}"
+                    )
+
+        # Update wallet
+        updated_wallet = await self.wallet_repo.update(
+            wallet_id=wallet_id,
+            wallet_address=wallet_address,
+            chain_id=chain_id,
+            introduced_date=introduced_date,
+            notes=notes,
+            is_active=is_active,
+        )
+
+        await self.session.commit()
+        return updated_wallet
+
     async def import_wallets_from_csv(
         self,
         partner_id: UUID,

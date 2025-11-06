@@ -7,6 +7,7 @@ import { LoginPage } from './pages/LoginPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { ValidatorsPage } from './pages/ValidatorsPage';
 import { PartnersPage } from './pages/PartnersPage';
+import { PartnerWalletsPage } from './pages/PartnerWalletsPage';
 import { AgreementsPage } from './pages/AgreementsPage';
 import { CommissionsPage } from './pages/CommissionsPage';
 import { theme } from './theme';
@@ -67,6 +68,14 @@ function App() {
                 element={
                   <PrivateRoute>
                     <PartnersPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/partners/:partnerId/wallets"
+                element={
+                  <PrivateRoute>
+                    <PartnerWalletsPage />
                   </PrivateRoute>
                 }
               />
