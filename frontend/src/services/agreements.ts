@@ -1,6 +1,7 @@
 import type {
   Agreement,
   AgreementCreate,
+  AgreementCreateWithRules,
   AgreementUpdate,
   AgreementWithRules,
   AgreementRule,
@@ -36,18 +37,63 @@ export const agreementsService = {
    * Get a single agreement by ID with rules
    */
   getAgreement: async (agreement_id: string): Promise<AgreementWithRules> => {
-    const response = await api.get<AgreementWithRules>(
-      `/api/v1/agreements/${agreement_id}`
-    );
-    return response.data;
+    // Fetch agreement and rules separately, then combine
+    const [agreementResponse, rulesResponse] = await Promise.all([
+      api.get<Agreement>(`/api/v1/agreements/${agreement_id}`),
+      api.get<AgreementRule[]>(`/api/v1/agreements/${agreement_id}/rules`)
+    ]);
+
+    return {
+      ...agreementResponse.data,
+      rules: rulesResponse.data,
+    };
   },
 
   /**
-   * Create a new agreement with rules
+   * Create a new agreement
    */
   createAgreement: async (data: AgreementCreate): Promise<Agreement> => {
     const response = await api.post<Agreement>('/api/v1/agreements', data);
     return response.data;
+  },
+
+  /**
+   * Create a new agreement with rules (transaction-like behavior)
+   * Creates agreement first, then adds rules one by one
+   * If any rule fails, the agreement will still exist but without that rule
+   */
+  createAgreementWithRules: async (data: AgreementCreateWithRules): Promise<AgreementWithRules> => {
+    const { rules, ...agreementData } = data;
+
+    // Create the agreement first
+    const agreement = await agreementsService.createAgreement(agreementData);
+
+    // Add each rule
+    const createdRules: AgreementRule[] = [];
+    for (const ruleData of rules) {
+      const fullRuleData: AgreementRuleCreate = {
+        ...ruleData,
+        agreement_id: agreement.agreement_id,
+        version_number: agreement.current_version,
+      };
+
+      try {
+        const rule = await agreementsService.addAgreementRule(
+          agreement.agreement_id,
+          fullRuleData
+        );
+        createdRules.push(rule);
+      } catch (error) {
+        // If a rule fails, we still have the agreement but log the error
+        console.error('Failed to add rule:', error);
+        throw error; // Re-throw to let caller handle
+      }
+    }
+
+    return {
+      ...agreement,
+      rules: createdRules,
+    };
   },
 
   /**

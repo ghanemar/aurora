@@ -116,10 +116,10 @@ export const AgreementStatus = {
 export type AgreementStatus = typeof AgreementStatus[keyof typeof AgreementStatus];
 
 export const RevenueComponent = {
-  ALL: 'ALL',
   EXEC_FEES: 'EXEC_FEES',
-  MEV: 'MEV',
-  REWARDS: 'REWARDS',
+  MEV_TIPS: 'MEV_TIPS',
+  VOTE_REWARDS: 'VOTE_REWARDS',
+  COMMISSION: 'COMMISSION',
 } as const;
 
 export type RevenueComponent = typeof RevenueComponent[keyof typeof RevenueComponent];
@@ -149,13 +149,10 @@ export interface AgreementRule {
   agreement_id: string;
   version_number: number;
   rule_order: number;
-  chain_id: string | null;
-  validator_key: string | null;
   revenue_component: RevenueComponent;
-  attribution_method: AttributionMethod;
   commission_rate_bps: number;
-  floor_amount_native: string | null;
-  cap_amount_native: string | null;
+  attribution_method: AttributionMethod;
+  validator_key: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -167,7 +164,10 @@ export interface AgreementCreate {
   status?: AgreementStatus;
   effective_from: string;
   effective_until?: string;
-  rules: AgreementRuleCreate[];
+}
+
+export interface AgreementCreateWithRules extends AgreementCreate {
+  rules: Omit<AgreementRuleCreate, 'agreement_id' | 'version_number'>[];
 }
 
 export interface AgreementUpdate {
@@ -178,14 +178,13 @@ export interface AgreementUpdate {
 }
 
 export interface AgreementRuleCreate {
+  agreement_id: string;
+  version_number: number;
   rule_order: number;
-  chain_id?: string;
-  validator_key?: string;
   revenue_component: RevenueComponent;
-  attribution_method: AttributionMethod;
   commission_rate_bps: number;
-  floor_amount_native?: string;
-  cap_amount_native?: string;
+  attribution_method: AttributionMethod;
+  validator_key?: string;
 }
 
 export interface AgreementWithRules extends Agreement {

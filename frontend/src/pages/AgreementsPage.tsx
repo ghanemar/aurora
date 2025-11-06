@@ -15,19 +15,32 @@ import {
   DialogContentText,
   IconButton,
   Chip,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from '@mui/material';
 import {
   ArrowBack as BackIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
+  ContentCopy as CopyIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { agreementsService } from '../services/agreements';
 import { partnersService } from '../services/partners';
-import type { Agreement, AgreementStatus } from '../types';
+import { AgreementWizard } from '../components/AgreementWizard';
+import type {
+  Agreement,
+  AgreementStatus,
+  AgreementWithRules,
+  AgreementCreateWithRules,
+} from '../types';
 
 /**
  * Agreements Page
@@ -44,8 +57,15 @@ export const AgreementsPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // State for dialogs
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  // State for selected agreements
   const [agreementToDelete, setAgreementToDelete] = useState<Agreement | null>(null);
+  const [selectedAgreement, setSelectedAgreement] = useState<AgreementWithRules | null>(null);
+  const [initialWizardData, setInitialWizardData] = useState<AgreementWithRules | undefined>(undefined);
 
   // Fetch partners for filter dropdown
   const { data: partnersData } = useQuery({
@@ -80,7 +100,36 @@ export const AgreementsPage: React.FC = () => {
     },
   });
 
+  // Create agreement mutation
+  const createMutation = useMutation({
+    mutationFn: (data: AgreementCreateWithRules) => agreementsService.createAgreementWithRules(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agreements'] });
+      setWizardOpen(false);
+      setInitialWizardData(undefined);
+    },
+  });
+
   // Handlers
+  const handleAddNew = () => {
+    setInitialWizardData(undefined);
+    setWizardOpen(true);
+  };
+
+  const handleView = async (agreement: Agreement) => {
+    const fullAgreement = await agreementsService.getAgreement(agreement.agreement_id);
+    setSelectedAgreement(fullAgreement);
+    setViewDialogOpen(true);
+  };
+
+  const handleCreateVersion = () => {
+    if (selectedAgreement) {
+      setInitialWizardData(selectedAgreement);
+      setViewDialogOpen(false);
+      setWizardOpen(true);
+    }
+  };
+
   const handleDelete = (agreement: Agreement) => {
     setAgreementToDelete(agreement);
     setDeleteDialogOpen(true);
@@ -90,6 +139,10 @@ export const AgreementsPage: React.FC = () => {
     if (agreementToDelete) {
       deleteMutation.mutate(agreementToDelete.agreement_id);
     }
+  };
+
+  const handleWizardSubmit = async (data: AgreementCreateWithRules) => {
+    await createMutation.mutateAsync(data);
   };
 
   // Get partner name from ID
@@ -170,7 +223,7 @@ export const AgreementsPage: React.FC = () => {
         <Box>
           <IconButton
             size="small"
-            onClick={() => alert('View details coming soon')}
+            onClick={() => handleView(params.row)}
             title="View Details"
           >
             <ViewIcon fontSize="small" />
@@ -203,10 +256,9 @@ export const AgreementsPage: React.FC = () => {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => {/* Coming soon */}}
-            disabled
+            onClick={handleAddNew}
           >
-            Add Agreement (Coming Soon)
+            Add Agreement
           </Button>
         </Toolbar>
       </AppBar>
@@ -268,6 +320,150 @@ export const AgreementsPage: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Agreement Wizard */}
+      {partnersData && (
+        <AgreementWizard
+          open={wizardOpen}
+          onClose={() => {
+            setWizardOpen(false);
+            setInitialWizardData(undefined);
+          }}
+          onSubmit={handleWizardSubmit}
+          partners={partnersData.data}
+          initialData={initialWizardData}
+          isSubmitting={createMutation.isPending}
+        />
+      )}
+
+      {/* View Agreement Dialog */}
+      <Dialog
+        open={viewDialogOpen}
+        onClose={() => setViewDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Agreement Details</DialogTitle>
+        <DialogContent>
+          {selectedAgreement && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Agreement Information
+              </Typography>
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                  <Box sx={{ flex: '1 1 45%', minWidth: '200px' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Partner
+                    </Typography>
+                    <Typography variant="body1">
+                      {getPartnerName(selectedAgreement.partner_id)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: '1 1 45%', minWidth: '200px' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Status
+                    </Typography>
+                    <Chip
+                      label={selectedAgreement.status}
+                      color={getStatusColor(selectedAgreement.status)}
+                      size="small"
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 45%', minWidth: '200px' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Start Date
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(selectedAgreement.effective_from)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: '1 1 45%', minWidth: '200px' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      End Date
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedAgreement.effective_until
+                        ? formatDate(selectedAgreement.effective_until)
+                        : 'Ongoing'}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ flex: '1 1 100%' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Version
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedAgreement.current_version}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Typography variant="h6" gutterBottom>
+                Commission Rules
+              </Typography>
+              <TableContainer component={Paper} variant="outlined">
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Rule Order</TableCell>
+                      <TableCell>Revenue Component</TableCell>
+                      <TableCell>Commission Rate</TableCell>
+                      <TableCell>Attribution Method</TableCell>
+                      <TableCell>Validator Key</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {selectedAgreement.rules && selectedAgreement.rules.length > 0 ? (
+                      selectedAgreement.rules.map((rule) => (
+                        <TableRow key={rule.rule_id}>
+                          <TableCell>{rule.rule_order}</TableCell>
+                          <TableCell>{rule.revenue_component.replace(/_/g, ' ')}</TableCell>
+                          <TableCell>
+                            {rule.commission_rate_bps} bps (
+                            {(rule.commission_rate_bps / 100).toFixed(2)}%)
+                          </TableCell>
+                          <TableCell>{rule.attribution_method.replace(/_/g, ' ')}</TableCell>
+                          <TableCell>
+                            {rule.validator_key || 'All validators'}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={5} align="center">
+                          No rules defined for this agreement
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+          <Button
+            onClick={handleCreateVersion}
+            variant="contained"
+            startIcon={<CopyIcon />}
+          >
+            Create New Version
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Create mutation error */}
+      {createMutation.isError && (
+        <Alert
+          severity="error"
+          sx={{ position: 'fixed', bottom: 16, right: 16, maxWidth: 400 }}
+          onClose={() => createMutation.reset()}
+        >
+          Failed to create agreement: {createMutation.error?.message}
+        </Alert>
+      )}
     </Box>
   );
 };
