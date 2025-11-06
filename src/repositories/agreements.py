@@ -207,10 +207,36 @@ class AgreementRuleRepository(BaseRepository[AgreementRules]):
         if active_only:
             stmt = stmt.where(AgreementRules.is_active.is_(True))
 
-        stmt = stmt.order_by(AgreementRules.version_number, AgreementRules.rule_name)
+        stmt = stmt.order_by(AgreementRules.version_number, AgreementRules.rule_order)
 
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_rules_by_agreement(
+        self,
+        agreement_id: UUID,
+        *,
+        version_number: int | None = None,
+        active_only: bool = False,
+    ) -> list[AgreementRules]:
+        """Alias for get_by_agreement for backward compatibility."""
+        return await self.get_by_agreement(
+            agreement_id,
+            version_number=version_number,
+            active_only=active_only,
+        )
+
+    async def get_active_rules(
+        self,
+        agreement_id: UUID,
+        version_number: int,
+    ) -> list[AgreementRules]:
+        """Get active rules for a specific agreement version."""
+        return await self.get_by_agreement(
+            agreement_id,
+            version_number=version_number,
+            active_only=True,
+        )
 
     async def get_by_revenue_component(
         self,

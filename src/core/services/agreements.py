@@ -9,7 +9,7 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.schemas.agreements import AgreementCreate, AgreementRuleCreate, AgreementUpdate
-from src.core.models.computation import AgreementRules, Agreements, AgreementStatus
+from src.core.models.computation import AgreementRules, Agreements, AgreementStatus, AgreementVersions
 from src.repositories.agreements import AgreementRepository, AgreementRuleRepository
 
 
@@ -53,6 +53,24 @@ class AgreementService:
             current_version=1,
             status=agreement_data.status or AgreementStatus.DRAFT,
         )
+        await self.session.flush()
+
+        # Create initial version record
+        version = AgreementVersions(
+            agreement_id=agreement.agreement_id,
+            version_number=1,
+            effective_from=agreement_data.effective_from,
+            effective_until=agreement_data.effective_until,
+            terms_snapshot={
+                "partner_id": str(agreement_data.partner_id),
+                "agreement_name": agreement_data.agreement_name,
+                "effective_from": agreement_data.effective_from.isoformat(),
+                "effective_until": agreement_data.effective_until.isoformat() if agreement_data.effective_until else None,
+                "status": agreement_data.status.value if agreement_data.status else AgreementStatus.DRAFT.value,
+            },
+        )
+        self.session.add(version)
+
         await self.session.commit()
 
         return agreement
@@ -259,6 +277,34 @@ class AgreementService:
         # Only add rules to DRAFT or ACTIVE agreements
         if agreement.status not in [AgreementStatus.DRAFT, AgreementStatus.ACTIVE]:
             raise ValueError(f"Cannot add rules to agreement with status {agreement.status.value}")
+
+        # Ensure agreement version exists (backward compatibility fix)
+        from sqlalchemy import select
+        version_stmt = select(AgreementVersions).where(
+            AgreementVersions.agreement_id == rule_data.agreement_id,
+            AgreementVersions.version_number == rule_data.version_number
+        )
+        version_result = await self.session.execute(version_stmt)
+        existing_version = version_result.scalar_one_or_none()
+
+        if not existing_version:
+            # Create missing version record
+            version = AgreementVersions(
+                agreement_id=rule_data.agreement_id,
+                version_number=rule_data.version_number,
+                effective_from=agreement.effective_from,
+                effective_until=agreement.effective_until,
+                terms_snapshot={
+                    "partner_id": str(agreement.partner_id),
+                    "agreement_name": agreement.agreement_name,
+                    "effective_from": agreement.effective_from.isoformat(),
+                    "effective_until": agreement.effective_until.isoformat() if agreement.effective_until else None,
+                    "status": agreement.status.value,
+                    "wallet_attribution_enabled": agreement.wallet_attribution_enabled,
+                },
+            )
+            self.session.add(version)
+            await self.session.flush()
 
         # Create rule
         rule = await self.rule_repo.create(
