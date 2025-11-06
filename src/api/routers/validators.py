@@ -10,6 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.dependencies import get_current_active_admin, get_current_user
 from src.api.schemas.validators import ValidatorPnLListResponse, ValidatorPnLResponse
+from src.api.schemas.validators_registry import (
+    ValidatorRegistryCreate,
+    ValidatorRegistryResponse,
+)
 from src.core.models.users import User
 from src.core.services.validators import ValidatorService
 from src.db.session import get_db
@@ -125,7 +129,7 @@ async def list_validators(
     description="Register a new validator in the platform",
 )
 async def create_validator(
-    validator_data: "ValidatorRegistryCreate",
+    validator_data: ValidatorRegistryCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_admin),
 ) -> dict:
@@ -142,11 +146,6 @@ async def create_validator(
     Raises:
         HTTPException: If creation fails or validator already exists
     """
-    from src.api.schemas.validators_registry import (
-        ValidatorRegistryCreate,
-        ValidatorRegistryResponse,
-    )
-
     service = ValidatorService(db)
 
     try:

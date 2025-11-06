@@ -250,7 +250,7 @@ class ValidatorService:
             "is_active": True,
         }
 
-        validator = await self.registry_repo.create(validator_data)
+        validator = await self.registry_repo.create(**validator_data)
         return validator
 
     async def update_validator(
