@@ -430,6 +430,10 @@ async def add_agreement_rule(
             detail=str(e),
         )
     except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"ERROR adding rule: {str(e)}")
+        print(f"Traceback: {error_trace}")
         await db.rollback()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

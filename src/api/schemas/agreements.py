@@ -87,11 +87,10 @@ class AgreementListResponse(BaseModel):
 class AgreementRuleBase(BaseModel):
     """Base schema for agreement commission rules."""
 
-    rule_name: str = Field(
+    rule_order: int = Field(
         ...,
-        min_length=1,
-        max_length=200,
-        description="Descriptive name for rule"
+        ge=0,
+        description="Execution order for multi-rule agreements"
     )
     revenue_component: RevenueComponent = Field(
         ...,
@@ -107,10 +106,10 @@ class AgreementRuleBase(BaseModel):
         ...,
         description="Method for attributing revenue to partner"
     )
-    validator_key_pattern: str | None = Field(
+    validator_key: str | None = Field(
         None,
         max_length=200,
-        description="Validator key pattern for rule application (SQL LIKE pattern)"
+        description="Optional validator filter (exact match or null for all)"
     )
 
 
