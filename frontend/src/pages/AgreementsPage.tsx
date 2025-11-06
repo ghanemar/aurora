@@ -232,7 +232,7 @@ export const AgreementsPage: React.FC = () => {
     {
       field: 'actions',
       headerName: 'Actions',
-      width: 160,
+      width: 120,
       sortable: false,
       renderCell: (params: GridRenderCellParams<Agreement>) => (
         <Box>
@@ -243,16 +243,6 @@ export const AgreementsPage: React.FC = () => {
           >
             <ViewIcon fontSize="small" />
           </IconButton>
-          {params.row.status === 'DRAFT' && (
-            <IconButton
-              size="small"
-              onClick={() => handleActivate(params.row)}
-              title="Activate Agreement"
-              color="success"
-            >
-              <ActivateIcon fontSize="small" />
-            </IconButton>
-          )}
           <IconButton
             size="small"
             onClick={() => handleDelete(params.row)}
@@ -469,6 +459,21 @@ export const AgreementsPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setViewDialogOpen(false)}>Close</Button>
+          {selectedAgreement?.status === 'DRAFT' && (
+            <Button
+              onClick={() => {
+                if (selectedAgreement) {
+                  handleActivate(selectedAgreement as Agreement);
+                  setViewDialogOpen(false);
+                }
+              }}
+              variant="contained"
+              color="success"
+              startIcon={<ActivateIcon />}
+            >
+              Activate Agreement
+            </Button>
+          )}
           <Button
             onClick={handleCreateVersion}
             variant="contained"
