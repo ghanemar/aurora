@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import {
   Box,
   Container,
-  Typography,
-  AppBar,
-  Toolbar,
   Button,
   Paper,
   Alert,
@@ -17,11 +14,9 @@ import {
   Chip,
 } from '@mui/material';
 import {
-  ArrowBack as BackIcon,
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Wallet as WalletIcon,
+  AccountBalanceWallet as WalletIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +24,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { partnersService } from '../services/partners';
 import { PartnerForm } from '../components/PartnerForm';
 import type { Partner, PartnerCreate, PartnerUpdate } from '../types';
+import { AppLayout } from '../components/AppLayout';
 
 /**
  * Partners Page
@@ -102,11 +98,12 @@ export const PartnersPage: React.FC = () => {
   });
 
   // Handlers
-  const handleAdd = () => {
-    setFormMode('create');
-    setSelectedPartner(undefined);
-    setFormOpen(true);
-  };
+  // handleAdd removed - now in AppLayout navigation
+  // const handleAdd = () => {
+  //   setFormMode('create');
+  //   setSelectedPartner(undefined);
+  //   setFormOpen(true);
+  // };
 
   const handleEdit = (partner: Partner) => {
     setFormMode('edit');
@@ -216,93 +213,76 @@ export const PartnersPage: React.FC = () => {
   const partners = partnersData?.data || [];
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" sx={{ bgcolor: 'background.paper' }}>
-        <Toolbar>
-          <IconButton edge="start" onClick={() => navigate('/')} sx={{ mr: 2 }}>
-            <BackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'text.primary' }}>
-            Partners
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-            disabled={createMutation.isPending}
-          >
-            Add Partner
-          </Button>
-        </Toolbar>
-      </AppBar>
+    <AppLayout>
+      <Box>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          {isError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Error loading partners: {error instanceof Error ? error.message : 'Unknown error'}
+            </Alert>
+          )}
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Error loading partners: {error instanceof Error ? error.message : 'Unknown error'}
-          </Alert>
-        )}
+          {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Operation failed: {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
+            </Alert>
+          )}
 
-        {(createMutation.isError || updateMutation.isError || deleteMutation.isError) && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Operation failed: {createMutation.error?.message || updateMutation.error?.message || deleteMutation.error?.message}
-          </Alert>
-        )}
+          <Paper sx={{ p: 2 }}>
+            <DataGrid
+              rows={partners}
+              columns={columns}
+              loading={isLoading}
+              getRowId={(row) => row.partner_id}
+              initialState={{
+                pagination: {
+                  paginationModel: { pageSize: 25, page: 0 },
+                },
+              }}
+              pageSizeOptions={[25, 50, 100]}
+              disableRowSelectionOnClick
+              autoHeight
+              sx={{
+                '& .MuiDataGrid-cell:focus': {
+                  outline: 'none',
+                },
+              }}
+            />
+          </Paper>
+        </Container>
 
-        <Paper sx={{ p: 2 }}>
-          <DataGrid
-            rows={partners}
-            columns={columns}
-            loading={isLoading}
-            getRowId={(row) => row.partner_id}
-            initialState={{
-              pagination: {
-                paginationModel: { pageSize: 25, page: 0 },
-              },
-            }}
-            pageSizeOptions={[25, 50, 100]}
-            disableRowSelectionOnClick
-            autoHeight
-            sx={{
-              '& .MuiDataGrid-cell:focus': {
-                outline: 'none',
-              },
-            }}
-          />
-        </Paper>
-      </Container>
+        {/* Partner Form Dialog */}
+        <PartnerForm
+          open={formOpen}
+          mode={formMode}
+          partner={selectedPartner}
+          onClose={() => setFormOpen(false)}
+          onSubmit={handleFormSubmit}
+          isSubmitting={createMutation.isPending || updateMutation.isPending}
+        />
 
-      {/* Partner Form Dialog */}
-      <PartnerForm
-        open={formOpen}
-        mode={formMode}
-        partner={selectedPartner}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        isSubmitting={createMutation.isPending || updateMutation.isPending}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete partner "{partnerToDelete?.partner_name}"?
-            This action cannot be undone.
-          </DialogContentText>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={confirmDelete}
-            color="error"
-            variant="contained"
-            disabled={deleteMutation.isPending}
-          >
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete partner "{partnerToDelete?.partner_name}"?
+              This action cannot be undone.
+            </DialogContentText>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={confirmDelete}
+              color="error"
+              variant="contained"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Deleting...' : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </AppLayout>
   );
 };

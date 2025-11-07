@@ -3,9 +3,6 @@ import {
   Box,
   Container,
   Typography,
-  AppBar,
-  Toolbar,
-  IconButton,
   Paper,
   Grid,
   Autocomplete,
@@ -15,15 +12,14 @@ import {
   CircularProgress,
 } from '@mui/material';
 import {
-  ArrowBack as BackIcon,
   Calculate as CalculateIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { partnersService } from '../services/partners';
 import { commissionsService } from '../services/commissions';
 import { CommissionResults } from '../components/CommissionResults';
 import type { Partner, Period } from '../types';
+import { AppLayout } from '../components/AppLayout';
 
 /**
  * Commissions Page
@@ -37,8 +33,6 @@ import type { Partner, Period } from '../types';
  */
 
 export const CommissionsPage: React.FC = () => {
-  const navigate = useNavigate();
-
   // State for selections
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [selectedPeriod, setSelectedPeriod] = useState<Period | null>(null);
@@ -108,150 +102,141 @@ export const CommissionsPage: React.FC = () => {
   const hasResults = calculationTriggered && breakdown;
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" sx={{ bgcolor: 'background.paper' }}>
-        <Toolbar>
-          <IconButton edge="start" onClick={() => navigate('/')} sx={{ mr: 2 }}>
-            <BackIcon />
-          </IconButton>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'text.primary' }}>
-            Commission Calculator
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <AppLayout>
+      <Box>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          {/* Selection Panel */}
+          <Paper sx={{ p: 3, mb: 3 }}>
+            <Typography variant="h6" gutterBottom>
+              Select Partner and Period
+            </Typography>
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {/* Selection Panel */}
-        <Paper sx={{ p: 3, mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Select Partner and Period
-          </Typography>
+            <Grid container spacing={3} sx={{ mt: 1 }}>
+              {/* Partner Select */}
+              <Grid size={{ xs: 12, md: 5 }}>
+                <Autocomplete
+                  options={partners}
+                  getOptionLabel={(partner) => partner.partner_name}
+                  value={selectedPartner}
+                  onChange={(_, newValue) => {
+                    setSelectedPartner(newValue);
+                    setCalculationTriggered(false); // Reset calculation when partner changes
+                  }}
+                  loading={partnersLoading}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Partner"
+                      placeholder="Select a partner"
+                      error={partnersError}
+                      helperText={partnersError ? 'Failed to load partners' : ''}
+                      slotProps={{
+                        input: {
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {partnersLoading ? (
+                                <CircularProgress color="inherit" size={20} />
+                              ) : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
 
-          <Grid container spacing={3} sx={{ mt: 1 }}>
-            {/* Partner Select */}
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Autocomplete
-                options={partners}
-                getOptionLabel={(partner) => partner.partner_name}
-                value={selectedPartner}
-                onChange={(_, newValue) => {
-                  setSelectedPartner(newValue);
-                  setCalculationTriggered(false); // Reset calculation when partner changes
-                }}
-                loading={partnersLoading}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Partner"
-                    placeholder="Select a partner"
-                    error={partnersError}
-                    helperText={partnersError ? 'Failed to load partners' : ''}
-                    slotProps={{
-                      input: {
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {partnersLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      },
-                    }}
-                  />
-                )}
-              />
+              {/* Period Select */}
+              <Grid size={{ xs: 12, md: 5 }}>
+                <Autocomplete
+                  options={periods}
+                  getOptionLabel={(period) =>
+                    `${period.chain_id} - Epoch ${period.epoch_number ?? 'N/A'} (${new Date(
+                      period.start_time
+                    ).toLocaleDateString()})`
+                  }
+                  value={selectedPeriod}
+                  onChange={(_, newValue) => {
+                    setSelectedPeriod(newValue);
+                    setCalculationTriggered(false); // Reset calculation when period changes
+                  }}
+                  loading={periodsLoading}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Period / Epoch"
+                      placeholder="Select a period"
+                      error={periodsError}
+                      helperText={periodsError ? 'Failed to load periods' : ''}
+                      slotProps={{
+                        input: {
+                          ...params.InputProps,
+                          endAdornment: (
+                            <>
+                              {periodsLoading ? (
+                                <CircularProgress color="inherit" size={20} />
+                              ) : null}
+                              {params.InputProps.endAdornment}
+                            </>
+                          ),
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </Grid>
+
+              {/* Calculate Button */}
+              <Grid size={{ xs: 12, md: 2 }}>
+                <Button
+                  variant="contained"
+                  fullWidth
+                  startIcon={<CalculateIcon />}
+                  onClick={handleCalculate}
+                  disabled={!canCalculate || breakdownLoading}
+                  sx={{ height: 56 }}
+                >
+                  {breakdownLoading ? 'Calculating...' : 'Calculate'}
+                </Button>
+              </Grid>
             </Grid>
+          </Paper>
 
-            {/* Period Select */}
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Autocomplete
-                options={periods}
-                getOptionLabel={(period) =>
-                  `${period.chain_id} - Epoch ${period.epoch_number ?? 'N/A'} (${new Date(
-                    period.start_time
-                  ).toLocaleDateString()})`
-                }
-                value={selectedPeriod}
-                onChange={(_, newValue) => {
-                  setSelectedPeriod(newValue);
-                  setCalculationTriggered(false); // Reset calculation when period changes
-                }}
-                loading={periodsLoading}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label="Period / Epoch"
-                    placeholder="Select a period"
-                    error={periodsError}
-                    helperText={periodsError ? 'Failed to load periods' : ''}
-                    slotProps={{
-                      input: {
-                        ...params.InputProps,
-                        endAdornment: (
-                          <>
-                            {periodsLoading ? (
-                              <CircularProgress color="inherit" size={20} />
-                            ) : null}
-                            {params.InputProps.endAdornment}
-                          </>
-                        ),
-                      },
-                    }}
-                  />
-                )}
-              />
-            </Grid>
-
-            {/* Calculate Button */}
-            <Grid size={{ xs: 12, md: 2 }}>
-              <Button
-                variant="contained"
-                fullWidth
-                startIcon={<CalculateIcon />}
-                onClick={handleCalculate}
-                disabled={!canCalculate || breakdownLoading}
-                sx={{ height: 56 }}
-              >
-                {breakdownLoading ? 'Calculating...' : 'Calculate'}
-              </Button>
-            </Grid>
-          </Grid>
-        </Paper>
-
-        {/* Error States */}
-        {breakdownError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            Failed to calculate commissions:{' '}
-            {breakdownErrorMsg instanceof Error
-              ? breakdownErrorMsg.message
-              : 'Unknown error'}
-          </Alert>
-        )}
-
-        {/* No Data State */}
-        {calculationTriggered &&
-          !breakdownLoading &&
-          !breakdownError &&
-          breakdown &&
-          breakdown.lines.length === 0 && (
-            <Alert severity="info" sx={{ mb: 3 }}>
-              No commission data found for the selected partner and period. This
-              could mean:
-              <ul>
-                <li>No active agreement exists for this partner</li>
-                <li>No revenue data available for this period</li>
-                <li>Agreement rules don't match any validators in this period</li>
-              </ul>
+          {/* Error States */}
+          {breakdownError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              Failed to calculate commissions:{' '}
+              {breakdownErrorMsg instanceof Error
+                ? breakdownErrorMsg.message
+                : 'Unknown error'}
             </Alert>
           )}
 
-        {/* Results Display */}
-        {hasResults && breakdown.lines.length > 0 && (
-          <CommissionResults breakdown={breakdown} loading={breakdownLoading} />
-        )}
-      </Container>
-    </Box>
+          {/* No Data State */}
+          {calculationTriggered &&
+            !breakdownLoading &&
+            !breakdownError &&
+            breakdown &&
+            breakdown.lines.length === 0 && (
+              <Alert severity="info" sx={{ mb: 3 }}>
+                No commission data found for the selected partner and period. This
+                could mean:
+                <ul>
+                  <li>No active agreement exists for this partner</li>
+                  <li>No revenue data available for this period</li>
+                  <li>Agreement rules don't match any validators in this period</li>
+                </ul>
+              </Alert>
+            )}
+
+          {/* Results Display */}
+          {hasResults && breakdown.lines.length > 0 && (
+            <CommissionResults breakdown={breakdown} loading={breakdownLoading} />
+          )}
+        </Container>
+      </Box>
+    </AppLayout>
   );
 };

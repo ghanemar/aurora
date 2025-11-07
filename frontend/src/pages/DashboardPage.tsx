@@ -1,11 +1,7 @@
 import React from 'react';
 import {
   Box,
-  Container,
   Typography,
-  AppBar,
-  Toolbar,
-  Button,
   Paper,
   Grid,
   Card,
@@ -19,14 +15,12 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  ExitToApp as LogoutIcon,
   AccountBalance as ChainIcon,
   People as PartnerIcon,
   Description as AgreementIcon,
   TrendingUp as CommissionIcon,
 } from '@mui/icons-material';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { AppLayout } from '../components/AppLayout';
 import { useDashboardData } from '../hooks/useDashboardData';
 
 /**
@@ -43,14 +37,7 @@ import { useDashboardData } from '../hooks/useDashboardData';
  */
 
 export const DashboardPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { user, logout } = useAuth();
   const { data, isLoading, isError, error } = useDashboardData();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -63,74 +50,8 @@ export const DashboardPage: React.FC = () => {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* AppBar */}
-      <AppBar position="static" elevation={0}>
-        <Toolbar>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: 1,
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            GLOBALSTAKE
-          </Typography>
-
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/validators')}
-            sx={{ mr: 2, textTransform: 'none' }}
-          >
-            Validators
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/partners')}
-            sx={{ mr: 2, textTransform: 'none' }}
-          >
-            Partners
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/agreements')}
-            sx={{ mr: 2, textTransform: 'none' }}
-          >
-            Agreements
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => navigate('/commissions')}
-            sx={{ mr: 2, textTransform: 'none' }}
-          >
-            Commissions
-          </Button>
-
-          <Typography variant="body2" sx={{ mr: 2 }}>
-            {user?.full_name || user?.username}
-          </Typography>
-
-          <Button
-            color="inherit"
-            startIcon={<LogoutIcon />}
-            onClick={handleLogout}
-            sx={{ textTransform: 'none' }}
-          >
-            Logout
-          </Button>
-        </Toolbar>
-      </AppBar>
-
-      {/* Main Content */}
-      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+    <AppLayout>
+      <Box>
         {/* Header */}
         <Paper sx={{ p: 4, mb: 4, borderRadius: 3 }}>
           <Typography variant="h4" gutterBottom>
@@ -350,7 +271,7 @@ export const DashboardPage: React.FC = () => {
             </Card>
           </Grid>
         </Grid>
-      </Container>
-    </Box>
+      </Box>
+    </AppLayout>
   );
 };

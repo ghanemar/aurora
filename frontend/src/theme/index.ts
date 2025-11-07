@@ -26,8 +26,8 @@ export const theme = createTheme({
       contrastText: '#ffffff',
     },
     background: {
-      default: '#0a1628', // Dark navy (main background)
-      paper: '#1e293b', // Slightly lighter for cards
+      default: '#0f172a', // Dark navy blue (main background) - matches screenshot
+      paper: '#1e293b', // Slightly lighter for cards and sidebar
     },
     text: {
       primary: '#f1f5f9', // Light text

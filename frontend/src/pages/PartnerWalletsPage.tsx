@@ -3,43 +3,28 @@ import {
   Box,
   Container,
   Typography,
-  AppBar,
-  Toolbar,
-  Button,
   Paper,
   Alert,
   IconButton,
   Chip,
-  Menu,
-  MenuItem,
-  Breadcrumbs,
-  Link as MuiLink,
 } from '@mui/material';
 import {
-  ArrowBack as BackIcon,
-  Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  CloudUpload as UploadIcon,
-  Download as DownloadIcon,
-  MoreVert as MoreIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
-import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useParams } from 'react-router-dom';
 import {
   usePartnerWallets,
   useDeleteWallet,
-  useExportWallets,
 } from '../hooks/usePartnerWallets';
-import { partnersService } from '../services/partners';
-import { downloadWalletTemplate, downloadWalletExport } from '../utils/csvTemplate';
 import type { PartnerWallet } from '../types';
 
 // Import dialogs (to be created next)
 import { EditWalletDialog } from '../components/EditWalletDialog';
 import { BulkUploadWalletsDialog } from '../components/BulkUploadWalletsDialog';
 import { DeleteWalletDialog } from '../components/DeleteWalletDialog';
+import { AppLayout } from '../components/AppLayout';
 
 /**
  * Partner Wallets Page
@@ -54,7 +39,6 @@ import { DeleteWalletDialog } from '../components/DeleteWalletDialog';
  */
 
 export const PartnerWalletsPage: React.FC = () => {
-  const navigate = useNavigate();
   const { partnerId } = useParams<{ partnerId: string }>();
 
   const [page, setPage] = useState(0);
@@ -69,15 +53,6 @@ export const PartnerWalletsPage: React.FC = () => {
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [walletToDelete, setWalletToDelete] = useState<PartnerWallet | null>(null);
-
-  const [menuAnchor, setMenuAnchor] = useState<null | HTMLElement>(null);
-
-  // Fetch partner details for breadcrumb
-  const { data: partner } = useQuery({
-    queryKey: ['partner', partnerId],
-    queryFn: () => partnersService.getPartner(partnerId!),
-    enabled: !!partnerId,
-  });
 
   // Fetch wallets
   const {
@@ -95,16 +70,7 @@ export const PartnerWalletsPage: React.FC = () => {
   // Delete mutation
   const deleteMutation = useDeleteWallet(partnerId!);
 
-  // Export mutation
-  const exportMutation = useExportWallets(partnerId!);
-
   // Handlers
-  const handleAdd = () => {
-    setFormMode('create');
-    setSelectedWallet(undefined);
-    setFormOpen(true);
-  };
-
   const handleEdit = (wallet: PartnerWallet) => {
     setFormMode('edit');
     setSelectedWallet(wallet);
@@ -128,34 +94,6 @@ export const PartnerWalletsPage: React.FC = () => {
         console.error('Delete failed:', error);
       }
     }
-  };
-
-  const handleBulkUpload = () => {
-    setBulkUploadOpen(true);
-  };
-
-  const handleExport = async () => {
-    try {
-      const blob = await exportMutation.mutateAsync({
-        chain_id: chainFilter,
-        is_active: activeFilter,
-      });
-      downloadWalletExport(blob, `${partner?.partner_name || 'partner'}_wallets.csv`);
-    } catch (error) {
-      console.error('Export failed:', error);
-    }
-  };
-
-  const handleDownloadTemplate = () => {
-    downloadWalletTemplate();
-  };
-
-  const handleMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
-    setMenuAnchor(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
   };
 
   // DataGrid columns
@@ -253,157 +191,78 @@ export const PartnerWalletsPage: React.FC = () => {
   }
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar position="static" sx={{ bgcolor: 'background.paper' }}>
-        <Toolbar>
-          <IconButton edge="start" onClick={() => navigate('/partners')} sx={{ mr: 2 }}>
-            <BackIcon />
-          </IconButton>
-          <Box sx={{ flexGrow: 1 }}>
-            <Typography variant="h6" sx={{ color: 'text.primary' }}>
-              Partner Wallets
-            </Typography>
-            {partner && (
-              <Breadcrumbs aria-label="breadcrumb" sx={{ mt: 0.5 }}>
-                <MuiLink
-                  component={RouterLink}
-                  to="/partners"
-                  underline="hover"
-                  color="inherit"
-                  sx={{ fontSize: '0.875rem' }}
-                >
-                  Partners
-                </MuiLink>
-                <Typography color="text.primary" sx={{ fontSize: '0.875rem' }}>
-                  {partner.partner_name}
-                </Typography>
-                <Typography color="text.primary" sx={{ fontSize: '0.875rem' }}>
-                  Wallets
-                </Typography>
-              </Breadcrumbs>
-            )}
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-            sx={{ mr: 1 }}
-          >
-            Add Wallet
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<UploadIcon />}
-            onClick={handleBulkUpload}
-            sx={{ mr: 1 }}
-          >
-            Bulk Upload
-          </Button>
-          <IconButton onClick={handleMenuOpen}>
-            <MoreIcon />
-          </IconButton>
-          <Menu
-            anchorEl={menuAnchor}
-            open={Boolean(menuAnchor)}
-            onClose={handleMenuClose}
-          >
-            <MenuItem
-              onClick={() => {
-                handleExport();
-                handleMenuClose();
+    <AppLayout>
+      <Box>
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          {isError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Error loading wallets: {error instanceof Error ? error.message : 'Unknown error'}
+            </Alert>
+          )}
+
+          {deleteMutation.isError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              Delete failed: {deleteMutation.error?.message}
+            </Alert>
+          )}
+
+          <Paper sx={{ p: 2 }}>
+            <DataGrid
+              rows={wallets}
+              columns={columns}
+              loading={isLoading}
+              getRowId={(row) => row.wallet_id}
+              pagination
+              paginationMode="server"
+              rowCount={totalRows}
+              paginationModel={{ page, pageSize }}
+              onPaginationModelChange={(model) => {
+                setPage(model.page);
+                setPageSize(model.pageSize);
               }}
-            >
-              <DownloadIcon sx={{ mr: 1 }} fontSize="small" />
-              Export CSV
-            </MenuItem>
-            <MenuItem
-              onClick={() => {
-                handleDownloadTemplate();
-                handleMenuClose();
+              pageSizeOptions={[10, 25, 50, 100]}
+              disableRowSelectionOnClick
+              autoHeight
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  py: 1,
+                },
               }}
-            >
-              <DownloadIcon sx={{ mr: 1 }} fontSize="small" />
-              Download Template
-            </MenuItem>
-          </Menu>
-        </Toolbar>
-      </AppBar>
+            />
+          </Paper>
+        </Container>
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Error loading wallets: {error instanceof Error ? error.message : 'Unknown error'}
-          </Alert>
-        )}
+        {/* Edit Wallet Dialog */}
+        <EditWalletDialog
+          open={formOpen}
+          mode={formMode}
+          partnerId={partnerId}
+          wallet={selectedWallet}
+          onClose={() => {
+            setFormOpen(false);
+            setSelectedWallet(undefined);
+          }}
+        />
 
-        {deleteMutation.isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Delete failed: {deleteMutation.error?.message}
-          </Alert>
-        )}
+        {/* Bulk Upload Dialog */}
+        <BulkUploadWalletsDialog
+          open={bulkUploadOpen}
+          partnerId={partnerId}
+          onClose={() => setBulkUploadOpen(false)}
+        />
 
-        {exportMutation.isError && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            Export failed: {exportMutation.error?.message}
-          </Alert>
-        )}
-
-        <Paper sx={{ p: 2 }}>
-          <DataGrid
-            rows={wallets}
-            columns={columns}
-            loading={isLoading}
-            getRowId={(row) => row.wallet_id}
-            pagination
-            paginationMode="server"
-            rowCount={totalRows}
-            paginationModel={{ page, pageSize }}
-            onPaginationModelChange={(model) => {
-              setPage(model.page);
-              setPageSize(model.pageSize);
-            }}
-            pageSizeOptions={[10, 25, 50, 100]}
-            disableRowSelectionOnClick
-            autoHeight
-            sx={{
-              '& .MuiDataGrid-cell': {
-                py: 1,
-              },
-            }}
-          />
-        </Paper>
-      </Container>
-
-      {/* Edit Wallet Dialog */}
-      <EditWalletDialog
-        open={formOpen}
-        mode={formMode}
-        partnerId={partnerId}
-        wallet={selectedWallet}
-        onClose={() => {
-          setFormOpen(false);
-          setSelectedWallet(undefined);
-        }}
-      />
-
-      {/* Bulk Upload Dialog */}
-      <BulkUploadWalletsDialog
-        open={bulkUploadOpen}
-        partnerId={partnerId}
-        onClose={() => setBulkUploadOpen(false)}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <DeleteWalletDialog
-        open={deleteDialogOpen}
-        wallet={walletToDelete}
-        onClose={() => {
-          setDeleteDialogOpen(false);
-          setWalletToDelete(null);
-        }}
-        onConfirm={confirmDelete}
-        isDeleting={deleteMutation.isPending}
-      />
-    </Box>
+        {/* Delete Confirmation Dialog */}
+        <DeleteWalletDialog
+          open={deleteDialogOpen}
+          wallet={walletToDelete}
+          onClose={() => {
+            setDeleteDialogOpen(false);
+            setWalletToDelete(null);
+          }}
+          onConfirm={confirmDelete}
+          isDeleting={deleteMutation.isPending}
+        />
+      </Box>
+    </AppLayout>
   );
 };

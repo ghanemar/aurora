@@ -3,8 +3,6 @@ import {
   Box,
   Container,
   Typography,
-  AppBar,
-  Toolbar,
   Button,
   Paper,
   Alert,
@@ -19,18 +17,17 @@ import {
   Chip,
 } from '@mui/material';
 import {
-  ArrowBack as BackIcon,
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
-import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { validatorsService } from '../services/validators';
 import { ValidatorForm } from '../components/ValidatorForm';
 import type { Validator, ValidatorCreate, ValidatorUpdate } from '../types';
 import YAML from 'yaml';
+import { AppLayout } from '../components/AppLayout';
 
 /**
  * Validators Page
@@ -50,7 +47,6 @@ interface ChainConfig {
 }
 
 export const ValidatorsPage: React.FC = () => {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const [chainFilter, setChainFilter] = useState<string>('');
@@ -260,140 +256,114 @@ export const ValidatorsPage: React.FC = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* AppBar */}
-      <AppBar position="static" elevation={0}>
-        <Toolbar>
-          <IconButton
-            edge="start"
-            color="inherit"
-            onClick={() => navigate('/dashboard')}
-            sx={{ mr: 2 }}
-          >
-            <BackIcon />
-          </IconButton>
-          <Typography
-            variant="h6"
-            component="div"
-            sx={{
-              flexGrow: 1,
-              fontWeight: 700,
-              background: 'linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            GLOBALSTAKE
-          </Typography>
-        </Toolbar>
-      </AppBar>
+    <AppLayout>
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        {/* Main Content */}
+        <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
+          {/* Header */}
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+            <Typography variant="h4" fontWeight={700}>
+              Validators
+            </Typography>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAdd}
+              sx={{ textTransform: 'none' }}
+            >
+              Add Validator
+            </Button>
+          </Box>
 
-      {/* Main Content */}
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-          <Typography variant="h4" fontWeight={700}>
-            Validators
-          </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-            sx={{ textTransform: 'none' }}
-          >
-            Add Validator
-          </Button>
-        </Box>
+          {/* Filter */}
+          <Paper sx={{ p: 2, mb: 3 }}>
+            <TextField
+              select
+              label="Filter by Chain"
+              value={chainFilter}
+              onChange={(e) => setChainFilter(e.target.value)}
+              sx={{ minWidth: 250 }}
+              size="small"
+            >
+              <MenuItem value="">All Chains</MenuItem>
+              {chains.map((chain) => (
+                <MenuItem key={chain.chain_id} value={chain.chain_id}>
+                  {chain.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Paper>
 
-        {/* Filter */}
-        <Paper sx={{ p: 2, mb: 3 }}>
-          <TextField
-            select
-            label="Filter by Chain"
-            value={chainFilter}
-            onChange={(e) => setChainFilter(e.target.value)}
-            sx={{ minWidth: 250 }}
-            size="small"
-          >
-            <MenuItem value="">All Chains</MenuItem>
-            {chains.map((chain) => (
-              <MenuItem key={chain.chain_id} value={chain.chain_id}>
-                {chain.name}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Paper>
-
-        {/* Error State */}
-        {isError && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            Failed to load validators: {(error as Error)?.message || 'Unknown error'}
-          </Alert>
-        )}
-
-        {/* DataGrid */}
-        <Paper sx={{ height: 600, width: '100%' }}>
-          <DataGrid
-            rows={validatorsData?.data || []}
-            columns={columns}
-            loading={isLoading}
-            getRowId={(row) => `${row.validator_key}-${row.chain_id}`}
-            pageSizeOptions={[10, 25, 50, 100]}
-            initialState={{
-              pagination: { paginationModel: { pageSize: 25 } },
-            }}
-            disableRowSelectionOnClick
-            sx={{
-              border: 'none',
-              '& .MuiDataGrid-cell:focus': {
-                outline: 'none',
-              },
-            }}
-          />
-        </Paper>
-      </Container>
-
-      {/* Validator Form Dialog */}
-      <ValidatorForm
-        open={formOpen}
-        mode={formMode}
-        validator={selectedValidator}
-        chains={chains}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleFormSubmit}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
-        <DialogTitle>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Are you sure you want to delete this validator?
-          </DialogContentText>
-          {validatorToDelete && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2">
-                <strong>Key:</strong> {validatorToDelete.validator_key}
-              </Typography>
-              <Typography variant="body2">
-                <strong>Chain:</strong> {getChainName(validatorToDelete.chain_id)}
-              </Typography>
-            </Box>
+          {/* Error State */}
+          {isError && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              Failed to load validators: {(error as Error)?.message || 'Unknown error'}
+            </Alert>
           )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            variant="contained"
-            disabled={deleteMutation.isPending}
-          >
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </Box>
+
+          {/* DataGrid */}
+          <Paper sx={{ height: 600, width: '100%' }}>
+            <DataGrid
+              rows={validatorsData?.data || []}
+              columns={columns}
+              loading={isLoading}
+              getRowId={(row) => `${row.validator_key}-${row.chain_id}`}
+              pageSizeOptions={[10, 25, 50, 100]}
+              initialState={{
+                pagination: { paginationModel: { pageSize: 25 } },
+              }}
+              disableRowSelectionOnClick
+              sx={{
+                border: 'none',
+                '& .MuiDataGrid-cell:focus': {
+                  outline: 'none',
+                },
+              }}
+            />
+          </Paper>
+        </Container>
+
+        {/* Validator Form Dialog */}
+        <ValidatorForm
+          open={formOpen}
+          mode={formMode}
+          validator={selectedValidator}
+          chains={chains}
+          onClose={() => setFormOpen(false)}
+          onSubmit={handleFormSubmit}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+          <DialogTitle>Confirm Delete</DialogTitle>
+          <DialogContent>
+            <DialogContentText>
+              Are you sure you want to delete this validator?
+            </DialogContentText>
+            {validatorToDelete && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Key:</strong> {validatorToDelete.validator_key}
+                </Typography>
+                <Typography variant="body2">
+                  <strong>Chain:</strong> {getChainName(validatorToDelete.chain_id)}
+                </Typography>
+              </Box>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleDeleteConfirm}
+              color="error"
+              variant="contained"
+              disabled={deleteMutation.isPending}
+            >
+              Delete
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Box>
+    </AppLayout>
   );
 };
