@@ -44,7 +44,7 @@ export const EditWalletDialog: React.FC<EditWalletDialogProps> = ({
   wallet,
   onClose,
 }) => {
-  const [chainId, setChainId] = useState('');
+  const [chainId, setChainId] = useState('solana-mainnet');
   const [walletAddress, setWalletAddress] = useState('');
   const [introducedDate, setIntroducedDate] = useState('');
   const [notes, setNotes] = useState('');
@@ -173,8 +173,7 @@ export const EditWalletDialog: React.FC<EditWalletDialogProps> = ({
               }}
               label="Chain *"
             >
-              <MenuItem value="solana">Solana</MenuItem>
-              <MenuItem value="ethereum">Ethereum</MenuItem>
+              <MenuItem value="solana-mainnet">Solana</MenuItem>
             </Select>
             {fieldErrors.chainId && (
               <Box sx={{ color: 'error.main', fontSize: '0.75rem', mt: 0.5 }}>

@@ -5,7 +5,10 @@ including bulk CSV uploads and wallet validation.
 """
 
 import io
+import logging
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from fastapi import (
     APIRouter,
@@ -65,6 +68,7 @@ async def create_wallet(
     service = PartnerWalletService(db)
 
     try:
+        logger.info(f"Creating wallet for partner {partner_id}: {wallet_data}")
         wallet = await service.create_wallet(
             partner_id=partner_id,
             chain_id=wallet_data.chain_id,
@@ -73,14 +77,17 @@ async def create_wallet(
             notes=wallet_data.notes,
         )
 
+        logger.info(f"Wallet created successfully: {wallet.wallet_id}")
         return PartnerWalletResponse.model_validate(wallet)
 
     except ValueError as e:
+        logger.warning(f"Validation error creating wallet: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         ) from e
     except Exception as e:
+        logger.error(f"Error creating wallet: {type(e).__name__}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to create wallet: {str(e)}",

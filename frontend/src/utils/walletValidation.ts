@@ -85,8 +85,10 @@ export function validateWalletAddress(
 
   switch (normalizedChain) {
     case 'solana':
+    case 'solana-mainnet':
       return validateSolanaAddress(address);
     case 'ethereum':
+    case 'ethereum-mainnet':
     case 'eth':
       return validateEthereumAddress(address);
     default:

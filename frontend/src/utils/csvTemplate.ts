@@ -10,11 +10,9 @@
 export function generateWalletTemplate(): Blob {
   const headers = 'chain_id,wallet_address,introduced_date,notes\n';
   const example1 =
-    'solana,ExampleSolanaAddress1234567890ABC,2024-01-15,Commission wallet for Q1 campaign\n';
-  const example2 =
-    'ethereum,0x1234567890abcdef1234567890abcdef12345678,2024-02-01,Staking pool wallet\n';
+    'solana-mainnet,ExampleSolanaAddress1234567890ABC,2024-01-15,Commission wallet for Q1 campaign\n';
 
-  const csv = headers + example1 + example2;
+  const csv = headers + example1;
   return new Blob([csv], { type: 'text/csv;charset=utf-8;' });
 }
 

@@ -90,10 +90,9 @@ export const partnerWalletsService = {
   ): Promise<BulkUploadResult> => {
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('skip_duplicates', skipDuplicates.toString());
 
     const response = await api.post<BulkUploadResult>(
-      `/api/v1/partners/${partnerId}/wallets/bulk`,
+      `/api/v1/partners/${partnerId}/wallets/bulk?skip_duplicates=${skipDuplicates}`,
       formData,
       {
         headers: {
