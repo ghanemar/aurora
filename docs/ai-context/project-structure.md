@@ -73,7 +73,7 @@ This document uses status markers to distinguish between implemented and planned
 
 ## Current Implementation Status
 
-**Completed Setup (as of 2025-10-31)**:
+**Completed Setup (as of 2025-11-06)**:
 - ✅ Python 3.11+ project with Poetry dependency management
 - ✅ Configuration management (`src/config/`) with Pydantic Settings and YAML loaders
 - ✅ Database infrastructure (`src/db/`) with async SQLAlchemy and connection pooling
@@ -82,10 +82,10 @@ This document uses status markers to distinguish between implemented and planned
 - ✅ Alembic migrations with management utilities
 - ✅ FastAPI application (`src/main.py`) running on port 8001 with CORS middleware and health check endpoint
 - ✅ Authentication system (`src/api/`) with JWT tokens (30-day expiration), bcrypt password hashing, and protected endpoints
-- ✅ Pydantic v2 schemas (`src/api/schemas/`) for validators, partners, agreements, and validator registry with strict validation
-- ✅ Repository pattern (`src/repositories/`) with generic base class and specific repositories for all entities including validator registry
-- ✅ Service layer (`src/core/services/`) with ValidatorService for P&L and registry operations
-- ✅ API routers (`src/api/routers/`) with dashboard stats endpoints and validators registry CRUD operations
+- ✅ Pydantic v2 schemas (`src/api/schemas/`) for validators, partners, agreements, partner wallets, and validator registry with strict validation
+- ✅ Repository pattern (`src/repositories/`) with generic base class and specific repositories for all entities including validator registry and partner wallets
+- ✅ Service layer (`src/core/services/`) with ValidatorService for P&L and registry operations, PartnerWalletService for wallet management with duplicate detection
+- ✅ API routers (`src/api/routers/`) with dashboard stats endpoints, validators registry CRUD operations, and partner wallets CRUD with bulk upload
 - ✅ Test framework with async database fixtures
 - ✅ Type checking with mypy, linting with ruff and black
 - ✅ Security infrastructure with password hashing, JWT, and structured logging
@@ -93,9 +93,10 @@ This document uses status markers to distinguish between implemented and planned
 - ✅ React 19 frontend with TypeScript, Vite 7, Material-UI v7, React Query, and Nginx serving
 - ✅ Dashboard page with chain stats, validators count, partners count, agreements count, and recent commissions
 - ✅ Validators management page with DataGrid, filtering, CRUD operations, and form validation
-- ✅ Partners management page with full CRUD operations, form validation, and DataGrid display
+- ✅ Partners management page with full CRUD operations, form validation, DataGrid display, and wallet management navigation
 - ✅ Agreements listing page with partner name resolution, status chips, and delete confirmation
 - ✅ Commissions viewer page with partner/period selection, commission calculation UI, summary cards, and DataGrid results display
+- ✅ Partner Wallets management page with dedicated route, full CRUD operations, chain-specific validation (Solana), bulk CSV upload with duplicate detection, CSV export, drag & drop file upload, server-side pagination, and wallet exclusivity enforcement
 
 **GitHub Issues Completed**: #1 (Python + Poetry), #2 (Config loaders), #3 (PostgreSQL + Docker), #6 (Chain registry ORM models), #7 (Staging layer ORM models), #8 (Canonical layer ORM models), #9 (Computation layer ORM models), #10 (Alembic migrations), #13 (Jito adapter), #18 (MVP Phase 1 - User Auth & API Foundation), #19 (MVP Phase 2a - Schemas & Repositories), #22 (Docker Compose for Full Stack), #23 (MVP Phase 5a - Dashboard & Validators UI backend), #24 (MVP Phase 5b - Partners & Agreements UI), #25 (MVP Phase 5c - Commissions Viewer UI)
 
@@ -169,6 +170,7 @@ aurora/
 │   │   ├── ✅ services/                # Business logic services (PARTIALLY IMPLEMENTED)
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ validators.py         # ValidatorService for P&L and registry operations
+│   │   │   ├── ✅ partner_wallets.py    # PartnerWalletService with duplicate detection and bulk upload
 │   │   │   └── 📋 ... (ingestion.py, normalization.py, commission_engine.py, etc.)
 │   │   │
 │   │   ├── 📋 repositories/            # Database access layer (moved to src/repositories/)
@@ -199,13 +201,15 @@ aurora/
 │   │   │   ├── ✅ partners.py          # Partner count and CRUD endpoints
 │   │   │   ├── ✅ agreements.py        # Agreement count and CRUD endpoints
 │   │   │   ├── ✅ commissions.py       # Commission calculation endpoints
-│   │   │   └── ✅ periods.py           # Canonical periods listing endpoint
+│   │   │   ├── ✅ periods.py           # Canonical periods listing endpoint
+│   │   │   └── ✅ partner_wallets.py   # Partner wallet CRUD, bulk upload, export endpoints
 │   │   ├── ✅ schemas/                 # Pydantic request/response schemas (IMPLEMENTED)
 │   │   │   ├── ✅ __init__.py
 │   │   │   ├── ✅ validators.py        # Validator P&L schemas
 │   │   │   ├── ✅ validators_registry.py # Validator registry CRUD schemas
 │   │   │   ├── ✅ partners.py          # Partner CRUD schemas
-│   │   │   └── ✅ agreements.py        # Agreement and rule schemas
+│   │   │   ├── ✅ agreements.py        # Agreement and rule schemas
+│   │   │   └── ✅ partner_wallets.py   # Partner wallet CRUD schemas
 │   │   └── 📋 v1/                      # API v1 business endpoints (Phase 2+)
 │   │
 │   ├── ✅ repositories/                # Database access layer (IMPLEMENTED)
@@ -213,10 +217,52 @@ aurora/
 │   │   ├── ✅ base.py                  # Generic BaseRepository with CRUD operations
 │   │   ├── ✅ validators.py            # ValidatorPnLRepository, ValidatorRegistryRepository
 │   │   ├── ✅ partners.py              # Partner repository with soft delete
-│   │   └── ✅ agreements.py            # Agreement and AgreementRule repositories
+│   │   ├── ✅ agreements.py            # Agreement and AgreementRule repositories
+│   │   └── ✅ partner_wallets.py       # PartnerWallet repository with update, get_by_address, pagination
 │   │
 │   └── 📋 jobs/                        # Background job definitions (create when implementing background tasks)
 │       └── 📋 ... (ingestion.py, normalization.py, computation.py, scheduler.py)
+│
+├── ✅ frontend/                        # React frontend application (IMPLEMENTED)
+│   ├── ✅ src/
+│   │   ├── ✅ main.tsx                 # React application entry point
+│   │   ├── ✅ App.tsx                  # Main app component with routing
+│   │   ├── ✅ types/
+│   │   │   └── ✅ index.ts             # TypeScript type definitions (Validator, Partner, Agreement, Wallet, etc.)
+│   │   ├── ✅ services/                # API client layer
+│   │   │   ├── ✅ api.ts               # Axios client with auth interceptors
+│   │   │   ├── ✅ auth.ts              # Authentication API calls
+│   │   │   ├── ✅ validators.ts        # Validator API calls
+│   │   │   ├── ✅ partners.ts          # Partner CRUD API calls
+│   │   │   ├── ✅ agreements.ts        # Agreement and rules API calls
+│   │   │   ├── ✅ commissions.ts       # Commission calculation API calls
+│   │   │   └── ✅ partnerWallets.ts    # Partner wallet CRUD, bulk upload, export API calls
+│   │   ├── ✅ hooks/                   # React Query custom hooks
+│   │   │   ├── ✅ usePartners.ts       # Partner data management hooks
+│   │   │   └── ✅ usePartnerWallets.ts # Wallet CRUD, bulk upload, export hooks with cache invalidation
+│   │   ├── ✅ pages/                   # Page components
+│   │   │   ├── ✅ DashboardPage.tsx    # Dashboard with stats and navigation
+│   │   │   ├── ✅ ValidatorsPage.tsx   # Validator registry management with DataGrid
+│   │   │   ├── ✅ PartnersPage.tsx     # Partner CRUD with wallet navigation button
+│   │   │   ├── ✅ AgreementsPage.tsx   # Agreement listing with partner name resolution
+│   │   │   ├── ✅ CommissionsPage.tsx  # Commission calculation UI with partner/period selection
+│   │   │   └── ✅ PartnerWalletsPage.tsx # Wallet management with DataGrid, CRUD, bulk upload, export
+│   │   ├── ✅ components/              # Reusable components
+│   │   │   ├── ✅ PrivateRoute.tsx     # Route protection with authentication
+│   │   │   ├── ✅ PartnerForm.tsx      # Partner create/edit form
+│   │   │   ├── ✅ CommissionResults.tsx # Commission results display with summary cards
+│   │   │   ├── ✅ EditWalletDialog.tsx # Wallet create/edit dialog with validation
+│   │   │   ├── ✅ BulkUploadWalletsDialog.tsx # CSV bulk upload with drag & drop
+│   │   │   └── ✅ DeleteWalletDialog.tsx # Wallet delete confirmation dialog
+│   │   └── ✅ utils/                   # Frontend utilities
+│   │       ├── ✅ csvTemplate.ts       # CSV template generation and export download
+│   │       └── ✅ walletValidation.ts  # Chain-specific wallet address validation (Solana, Ethereum)
+│   ├── ✅ index.html                   # HTML entry point
+│   ├── ✅ vite.config.ts               # Vite build configuration
+│   ├── ✅ tsconfig.json                # TypeScript configuration
+│   ├── ✅ package.json                 # NPM dependencies
+│   ├── ✅ Dockerfile                   # Multi-stage Docker build
+│   └── ✅ nginx.conf                   # Nginx serving configuration
 │
 ├── ✅ tests/                           # Test suite
 │   ├── ✅ conftest.py                  # Pytest fixtures and async database session
@@ -616,21 +662,40 @@ Audit log captures immutable before/after snapshots of all sensitive operations 
 
 ---
 
-**Document Version**: 1.9
-**Last Updated**: 2025-11-02
+**Document Version**: 2.0
+**Last Updated**: 2025-11-06
 **Status**: Active
-**Recent Changes (v1.9 - 2025-11-02)**:
-- Implemented Commissions Viewer UI (Issue #25 - MVP Phase 5c)
-- Added 1 new backend file:
-  - `src/api/routers/periods.py` - Canonical periods listing endpoint with pagination and chain filtering
-- Added 3 new frontend files:
-  - `frontend/src/services/commissions.ts` - Commission calculation API client
-  - `frontend/src/components/CommissionResults.tsx` - Commission results display with summary cards and DataGrid
-  - `frontend/src/pages/CommissionsPage.tsx` - Commission calculator with partner/period selection
-- Extended `frontend/src/types/index.ts` with Period, CommissionLine, and CommissionBreakdown types
-- Added Commissions navigation button to Dashboard
-- Updated App.tsx with protected route for Commissions page
-- Implemented proper MUI v7 Grid API with size prop syntax
+**Recent Changes (v2.0 - 2025-11-06)**:
+- Implemented Partner Wallets Management UI with full-stack CRUD operations
+- Added comprehensive frontend file tree documentation for the React application
+- Backend additions (3 files):
+  - `src/api/routers/partner_wallets.py` - Partner wallet CRUD, bulk upload, export endpoints
+  - `src/api/schemas/partner_wallets.py` - Partner wallet request/response schemas
+  - `src/core/services/partner_wallets.py` - Business logic with duplicate detection
+  - `src/repositories/partner_wallets.py` - Database access with update, get_by_address, pagination
+- Frontend additions (8 new files):
+  - `frontend/src/pages/PartnerWalletsPage.tsx` - Main wallet management page with DataGrid
+  - `frontend/src/services/partnerWallets.ts` - Complete API client with bulk upload/export
+  - `frontend/src/hooks/usePartnerWallets.ts` - React Query hooks with cache invalidation
+  - `frontend/src/components/EditWalletDialog.tsx` - Create/edit dialog with chain-specific validation
+  - `frontend/src/components/BulkUploadWalletsDialog.tsx` - CSV bulk upload with drag & drop
+  - `frontend/src/components/DeleteWalletDialog.tsx` - Delete confirmation dialog
+  - `frontend/src/utils/walletValidation.ts` - Chain-specific address validation (Solana, Ethereum)
+  - `frontend/src/utils/csvTemplate.ts` - CSV template generation and export download
+- Features implemented:
+  - Full CRUD operations for partner wallets
+  - Bulk CSV upload with duplicate detection and skip reporting
+  - CSV export with filtering
+  - Chain-specific wallet validation (Solana base58, Ethereum hex)
+  - Wallet exclusivity enforcement via UNIQUE constraints
+  - Server-side pagination with MUI DataGrid v7
+  - Drag & drop file upload
+  - All fields editable (chain_id, wallet_address, introduced_date, notes, is_active)
+- Bug fixes during implementation:
+  - Fixed chain_id mismatch (solana vs solana-mainnet)
+  - Fixed bulk upload parameter format (query parameter vs FormData)
+  - Fixed delete dialog not closing (async/await pattern)
+  - Added missing date import in repository layer
 
 **Previous Changes (v1.8 - 2025-11-02)**:
 - Implemented Partners & Agreements UI (Issue #24 - MVP Phase 5b)
