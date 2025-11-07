@@ -232,7 +232,8 @@ class Partners(BaseModel):
         legal_entity_name: Legal entity for contracts/invoicing (nullable)
         contact_email: Primary contact email
         contact_name: Primary contact person name (nullable)
-        is_active: Soft-delete flag
+        is_active: Active/inactive status flag for operational control
+        deleted_at: Soft-delete timestamp (nullable)
         created_at: Timestamp when record was created
         updated_at: Timestamp when record was last updated
     """
@@ -274,7 +275,13 @@ class Partners(BaseModel):
         Boolean,
         nullable=False,
         default=True,
-        comment="Soft-delete flag",
+        comment="Active/inactive status flag for operational control",
+    )
+
+    deleted_at: Mapped[TIMESTAMP | None] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+        comment="Soft-delete timestamp",
     )
 
     # Relationships
@@ -295,6 +302,7 @@ class Partners(BaseModel):
     __table_args__ = (
         Index("idx_partners_active", "is_active"),
         Index("idx_partners_email", "contact_email"),
+        Index("idx_partners_deleted", "deleted_at"),
     )
 
 
@@ -400,6 +408,7 @@ class Agreements(BaseModel):
         status: Agreement lifecycle status
         effective_from: Agreement start date
         effective_until: Agreement end date (nullable for ongoing)
+        deleted_at: Soft-delete timestamp (nullable)
         created_at: Timestamp when record was created
         updated_at: Timestamp when record was last updated
     """
@@ -459,6 +468,12 @@ class Agreements(BaseModel):
         comment="Agreement end date (nullable for ongoing)",
     )
 
+    deleted_at: Mapped[TIMESTAMP | None] = mapped_column(
+        TIMESTAMP(timezone=True),
+        nullable=True,
+        comment="Soft-delete timestamp",
+    )
+
     # Relationships
     partner: Mapped["Partners"] = relationship("Partners", back_populates="agreements")
 
@@ -478,6 +493,7 @@ class Agreements(BaseModel):
         Index("idx_agreements_partner", "partner_id"),
         Index("idx_agreements_status", "status"),
         Index("idx_agreements_effective", "effective_from", "effective_until"),
+        Index("idx_agreements_deleted", "deleted_at"),
     )
 
 

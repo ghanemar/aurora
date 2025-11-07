@@ -84,7 +84,8 @@ services:
       dockerfile: Dockerfile
     container_name: aurora-frontend
     environment:
-      VITE_API_URL: http://localhost:8001
+      # Empty API URL to use relative paths (nginx proxy)
+      VITE_API_URL: ""
     ports:
       - "3000:80"
     depends_on:

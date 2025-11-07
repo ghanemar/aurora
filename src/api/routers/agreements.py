@@ -85,7 +85,7 @@ async def list_agreements(
     page: int = Query(1, ge=1, description="Page number (1-indexed)"),
     page_size: int = Query(10, ge=1, le=100, description="Items per page"),
     partner_id: UUID | None = Query(None, description="Filter by partner UUID"),
-    status: AgreementStatus | None = Query(None, description="Filter by agreement status"),
+    status_filter: AgreementStatus | None = Query(None, alias="status", description="Filter by agreement status"),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> AgreementListResponse:
@@ -95,7 +95,7 @@ async def list_agreements(
         page: Page number for pagination
         page_size: Number of items per page
         partner_id: Optional filter by partner
-        status: Optional filter by status
+        status_filter: Optional filter by status
         db: Database session
         current_user: Current authenticated user
 
@@ -116,11 +116,11 @@ async def list_agreements(
             offset=offset,
             limit=page_size,
             partner_id=partner_id,
-            status=status,
+            status=status_filter,
         )
 
         # Get total count
-        total = await service.count_agreements(partner_id=partner_id, status=status)
+        total = await service.count_agreements(partner_id=partner_id, status=status_filter)
 
         # Convert to response models
         data = [AgreementResponse.model_validate(agreement) for agreement in agreements]

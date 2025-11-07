@@ -21,9 +21,8 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   CloudUpload as UploadIcon,
-  DownloadIcon,
+  Download as DownloadIcon,
   MoreVert as MoreIcon,
-  CheckCircle as ValidateIcon,
 } from '@mui/icons-material';
 import { DataGrid, type GridColDef, type GridRenderCellParams } from '@mui/x-data-grid';
 import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
@@ -60,8 +59,8 @@ export const PartnerWalletsPage: React.FC = () => {
 
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
-  const [chainFilter, setChainFilter] = useState<string | undefined>();
-  const [activeFilter, setActiveFilter] = useState<boolean | undefined>(true);
+  const [chainFilter] = useState<string | undefined>();
+  const [activeFilter] = useState<boolean | undefined>(true);
 
   const [formOpen, setFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
@@ -350,10 +349,11 @@ export const PartnerWalletsPage: React.FC = () => {
             pagination
             paginationMode="server"
             rowCount={totalRows}
-            page={page}
-            pageSize={pageSize}
-            onPageChange={setPage}
-            onPageSizeChange={setPageSize}
+            paginationModel={{ page, pageSize }}
+            onPaginationModelChange={(model) => {
+              setPage(model.page);
+              setPageSize(model.pageSize);
+            }}
             pageSizeOptions={[10, 25, 50, 100]}
             disableRowSelectionOnClick
             autoHeight

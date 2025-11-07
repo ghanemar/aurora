@@ -9,8 +9,14 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.schemas.agreements import AgreementCreate, AgreementRuleCreate, AgreementUpdate
-from src.core.models.computation import AgreementRules, Agreements, AgreementStatus, AgreementVersions
+from src.core.models.computation import (
+    AgreementRules,
+    Agreements,
+    AgreementStatus,
+    AgreementVersions,
+)
 from src.repositories.agreements import AgreementRepository, AgreementRuleRepository
+from src.repositories.partners import PartnerRepository
 
 
 class AgreementService:
@@ -29,6 +35,7 @@ class AgreementService:
         self.session = session
         self.agreement_repo = AgreementRepository(session)
         self.rule_repo = AgreementRuleRepository(session)
+        self.partner_repo = PartnerRepository(session)
 
     async def create_agreement(self, agreement_data: AgreementCreate) -> Agreements:
         """Create a new agreement with validation.
@@ -40,8 +47,19 @@ class AgreementService:
             Created Agreement instance
 
         Raises:
-            ValueError: If validation fails
+            ValueError: If validation fails or partner is not active
         """
+        # Validate partner is active
+        partner = await self.partner_repo.get(agreement_data.partner_id)
+        if not partner:
+            raise ValueError(f"Partner with ID {agreement_data.partner_id} not found")
+
+        if not partner.is_active:
+            raise ValueError(
+                f"Cannot create agreement for inactive partner '{partner.partner_name}'. "
+                "Please activate the partner first."
+            )
+
         # Validate effective dates
         if agreement_data.effective_until:
             if agreement_data.effective_until <= agreement_data.effective_from:

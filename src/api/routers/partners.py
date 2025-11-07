@@ -244,39 +244,131 @@ async def update_partner(
         )
 
 
-@router.delete(
-    "/{partner_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete partner",
-    description="Soft delete a partner by setting is_active to False (Admin only)",
+@router.patch(
+    "/{partner_id}/status",
+    response_model=PartnerResponse,
+    summary="Toggle partner active status",
+    description="Toggle a partner's active/inactive status (Admin only)",
 )
-async def delete_partner(
+async def toggle_partner_status(
     partner_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_active_admin),
-) -> None:
-    """Soft delete a partner.
+) -> PartnerResponse:
+    """Toggle partner's active status.
 
     Args:
         partner_id: Partner UUID
         db: Database session
         current_user: Current authenticated admin user
 
+    Returns:
+        Updated partner
+
     Raises:
-        HTTPException: If partner not found or deletion fails
+        HTTPException: If partner not found or update fails
     """
     service = PartnerService(db)
 
     try:
-        deleted = await service.delete_partner(partner_id)
-
-        if not deleted:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Partner with ID {partner_id} not found",
-            )
+        partner = await service.toggle_partner_status(partner_id)
+        return PartnerResponse.model_validate(partner)
 
     except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to toggle partner status: {str(e)}",
+        )
+
+
+@router.get(
+    "/{partner_id}/deletion-info",
+    summary="Get partner deletion info",
+    description="Get information about what will be deleted with the partner (Admin only)",
+)
+async def get_partner_deletion_info(
+    partner_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin),
+) -> dict:
+    """Get information about partner deletion impact.
+
+    Args:
+        partner_id: Partner UUID
+        db: Database session
+        current_user: Current authenticated admin user
+
+    Returns:
+        Dictionary with counts of related entities
+
+    Raises:
+        HTTPException: If partner not found
+    """
+    service = PartnerService(db)
+
+    try:
+        info = await service.get_partner_deletion_info(partner_id)
+        return info
+
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e),
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get deletion info: {str(e)}",
+        )
+
+
+@router.delete(
+    "/{partner_id}",
+    summary="Delete partner",
+    description="Soft delete a partner with optional cascade deletion of agreements (Admin only)",
+)
+async def delete_partner(
+    partner_id: UUID,
+    cascade: bool = Query(
+        False,
+        description="If true, also soft-delete all associated agreements. Required if partner has agreements.",
+    ),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_active_admin),
+) -> dict:
+    """Soft delete a partner.
+
+    Args:
+        partner_id: Partner UUID
+        cascade: Whether to cascade delete agreements
+        db: Database session
+        current_user: Current authenticated admin user
+
+    Returns:
+        Dictionary with counts of deleted entities
+
+    Raises:
+        HTTPException: If partner not found, has agreements without cascade, or deletion fails
+    """
+    service = PartnerService(db)
+
+    try:
+        result = await service.delete_partner(partner_id, cascade=cascade)
+        return result
+
+    except ValueError as e:
+        # Check if error is about agreements requiring cascade
+        if "agreement(s) exist" in str(e):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=str(e),
+            )
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),

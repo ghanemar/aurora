@@ -54,9 +54,40 @@ export const partnersService = {
   },
 
   /**
-   * Delete a partner
+   * Toggle partner active status
    */
-  deletePartner: async (partner_id: string): Promise<void> => {
-    await api.delete(`/api/v1/partners/${partner_id}`);
+  togglePartnerStatus: async (partner_id: string): Promise<Partner> => {
+    const response = await api.patch<Partner>(
+      `/api/v1/partners/${partner_id}/status`
+    );
+    return response.data;
+  },
+
+  /**
+   * Get partner deletion info
+   */
+  getPartnerDeletionInfo: async (
+    partner_id: string
+  ): Promise<{ agreement_count: number }> => {
+    const response = await api.get<{ agreement_count: number }>(
+      `/api/v1/partners/${partner_id}/deletion-info`
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete a partner with optional cascade
+   */
+  deletePartner: async (
+    partner_id: string,
+    cascade: boolean = false
+  ): Promise<{ partner_deleted: number; agreements_deleted: number }> => {
+    const response = await api.delete<{
+      partner_deleted: number;
+      agreements_deleted: number;
+    }>(`/api/v1/partners/${partner_id}`, {
+      params: { cascade },
+    });
+    return response.data;
   },
 };

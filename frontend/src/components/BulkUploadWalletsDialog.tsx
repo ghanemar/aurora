@@ -13,7 +13,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  Divider,
   FormControlLabel,
   Checkbox,
   Paper,

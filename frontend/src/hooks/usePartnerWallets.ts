@@ -1,11 +1,8 @@
-import { useMutation, useQuery, useQueryClient } from '@tantml/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type {
   PartnerWallet,
   PartnerWalletCreate,
   PartnerWalletUpdate,
-  PartnerWalletListResponse,
-  BulkUploadResult,
-  WalletValidationResult,
 } from '../types';
 import { partnerWalletsService } from '../services/partnerWallets';
 
@@ -104,7 +101,7 @@ export function useUpdateWallet(partnerId: string, walletId: string) {
   return useMutation({
     mutationFn: (data: PartnerWalletUpdate) =>
       partnerWalletsService.updateWallet(partnerId, walletId, data),
-    onSuccess: (updatedWallet) => {
+    onSuccess: (updatedWallet: PartnerWallet) => {
       // Update the specific wallet in cache
       queryClient.setQueryData(
         walletKeys.detail(partnerId, walletId),

@@ -4,10 +4,10 @@ This module provides repository classes for accessing partner commission
 agreements and their associated rules.
 """
 
-from datetime import datetime
+from datetime import UTC, datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.models.computation import (
@@ -35,18 +35,23 @@ class AgreementRepository(BaseRepository[Agreements]):
         """
         super().__init__(Agreements, session)
 
-    async def get(self, id: UUID) -> Agreements | None:
+    async def get(self, id: UUID, include_deleted: bool = False) -> Agreements | None:
         """Get an agreement by ID.
 
         Overrides base method to use agreement_id instead of generic id.
 
         Args:
             id: The agreement UUID
+            include_deleted: Include soft-deleted agreements (default: False)
 
         Returns:
             Agreements instance if found, None otherwise
         """
         stmt = select(Agreements).where(Agreements.agreement_id == id)
+
+        if not include_deleted:
+            stmt = stmt.where(Agreements.deleted_at.is_(None))
+
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -56,6 +61,7 @@ class AgreementRepository(BaseRepository[Agreements]):
         *,
         status: AgreementStatus | None = None,
         active_only: bool = False,
+        include_deleted: bool = False,
         offset: int = 0,
         limit: int = 100,
     ) -> list[Agreements]:
@@ -65,6 +71,7 @@ class AgreementRepository(BaseRepository[Agreements]):
             partner_id: Partner UUID
             status: Optional agreement status filter
             active_only: Only include currently active agreements (effective dates)
+            include_deleted: Include soft-deleted agreements (default: False)
             offset: Number of records to skip (default: 0)
             limit: Maximum number of records to return (default: 100)
 
@@ -72,6 +79,9 @@ class AgreementRepository(BaseRepository[Agreements]):
             List of Agreements instances
         """
         stmt = select(Agreements).where(Agreements.partner_id == partner_id)
+
+        if not include_deleted:
+            stmt = stmt.where(Agreements.deleted_at.is_(None))
 
         if status:
             stmt = stmt.where(Agreements.status == status)
@@ -95,7 +105,7 @@ class AgreementRepository(BaseRepository[Agreements]):
         offset: int = 0,
         limit: int = 100,
     ) -> list[Agreements]:
-        """Get all currently active agreements.
+        """Get all currently active agreements (not deleted).
 
         Args:
             as_of_date: Date to check for active agreements (default: now)
@@ -111,6 +121,7 @@ class AgreementRepository(BaseRepository[Agreements]):
             select(Agreements)
             .where(
                 Agreements.status == AgreementStatus.ACTIVE,
+                Agreements.deleted_at.is_(None),
                 Agreements.effective_from <= check_date,
                 (Agreements.effective_until.is_(None)) | (Agreements.effective_until >= check_date),
             )
@@ -152,27 +163,61 @@ class AgreementRepository(BaseRepository[Agreements]):
         return agreement
 
     async def delete(self, id: UUID) -> bool:
-        """Delete an agreement by ID.
+        """Soft-delete an agreement by setting deleted_at timestamp.
 
-        Overrides base method to use agreement_id instead of generic id.
-        Cascade deletes will handle related rules and versions.
+        Overrides base method to use soft delete instead of hard delete.
 
         Args:
             id: The agreement UUID to delete
 
         Returns:
-            True if the agreement was deleted, False if not found
+            True if the agreement was soft-deleted, False if not found
         """
-        stmt = select(Agreements).where(Agreements.agreement_id == id)
+        agreement = await self.update(id, deleted_at=datetime.now(UTC))
+        return agreement is not None
+
+    async def count_by_partner(self, partner_id: UUID, include_deleted: bool = False) -> int:
+        """Count agreements for a specific partner.
+
+        Args:
+            partner_id: Partner UUID
+            include_deleted: Include soft-deleted agreements (default: False)
+
+        Returns:
+            Count of agreements for the partner
+        """
+        stmt = select(func.count()).select_from(Agreements).where(Agreements.partner_id == partner_id)
+
+        if not include_deleted:
+            stmt = stmt.where(Agreements.deleted_at.is_(None))
+
         result = await self.session.execute(stmt)
-        agreement = result.scalar_one_or_none()
+        return result.scalar_one()
 
-        if agreement:
-            await self.session.delete(agreement)
+    async def soft_delete_by_partner(self, partner_id: UUID) -> int:
+        """Soft-delete all agreements for a specific partner.
+
+        Args:
+            partner_id: Partner UUID
+
+        Returns:
+            Number of agreements soft-deleted
+        """
+        stmt = select(Agreements).where(
+            Agreements.partner_id == partner_id, Agreements.deleted_at.is_(None)
+        )
+        result = await self.session.execute(stmt)
+        agreements = list(result.scalars().all())
+
+        deleted_count = 0
+        for agreement in agreements:
+            agreement.deleted_at = datetime.now(UTC)
+            deleted_count += 1
+
+        if deleted_count > 0:
             await self.session.flush()
-            return True
 
-        return False
+        return deleted_count
 
 
 class AgreementRuleRepository(BaseRepository[AgreementRules]):
