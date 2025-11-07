@@ -116,9 +116,17 @@ export const PartnerWalletsPage: React.FC = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (walletToDelete) {
-      deleteMutation.mutate(walletToDelete.wallet_id);
+      try {
+        await deleteMutation.mutateAsync(walletToDelete.wallet_id);
+        // Close dialog and reset state on success
+        setDeleteDialogOpen(false);
+        setWalletToDelete(null);
+      } catch (error) {
+        // Error is handled by the mutation error state
+        console.error('Delete failed:', error);
+      }
     }
   };
 
