@@ -11,9 +11,92 @@ This template helps maintain:
 - **Knowledge transfer** for project handoffs
 - **Progress documentation** for ongoing development efforts
 
-## Current Session Status (2025-11-06)
+## Current Session Status (2025-11-07)
 
 ### Active Tasks
+
+**NEW MILESTONE: Sample Data Seeding & Commission Testing** (Issues #30-#35)
+
+**Status**: 📋 PLANNING COMPLETE - Ready for Implementation
+**Branch**: `feature/milestone-sample-data-seeding`
+**Priority**: High
+**Estimated Effort**: ~9 hours (6 phases)
+
+**Overview**:
+Seed Aurora database with real Solana validator data from `temp-data/globalstake-sample.xlsx` (61 epochs, 178 unique wallets) to validate the partner commission calculation engine with realistic data patterns. Includes stake-weighted partner assignments and simulated 5% APY rewards.
+
+**Context**:
+- Excel file contains 2 sheets: Validator Summary (epoch-level aggregations) and Stake Accounts (granular per-wallet positions)
+- 61 epochs of historical data (epochs 800-860) with 10,858 stake account records total
+- Partner wallet attribution based on **withdrawer wallet** (economic beneficiary)
+- Stake-weighted distribution: Partner 1 (~50%), Partner 2 (~45%), Unassigned (2 wallets, ~5%)
+- Simulated rewards using 5% APY assumption (~73 epochs/year on Solana)
+
+**GitHub Issues Created**:
+- ⏳ **Issue #30**: Phase 1 - Data Analysis & Wallet Distribution (1h)
+  - Parse Excel, analyze withdrawer wallets, generate stake-weighted partner assignments
+  - Output: `wallet-distribution.json`
+- ⏳ **Issue #31**: Phase 2 - Database Schema Preparation (1h)
+  - Create tables: validator_epoch_summary, stake_accounts, wallets, epoch_rewards
+  - Add indexes for performance, create Alembic migration
+- ⏳ **Issue #32**: Phase 3 - Rewards Simulation Engine (1.5h)
+  - Implement 5% APY simulation logic
+  - Calculate validator commission (5%) and per-wallet proportional rewards
+  - Output: `rewards_simulator.py` module
+- ⏳ **Issue #33**: Phase 4 - Data Import Pipeline (2h)
+  - Parse Excel → Transform → Load all 61 epochs (10,858 records)
+  - Link wallets to partners, generate simulated rewards
+  - Output: `seed_globalstake_sample.py` script
+- ⏳ **Issue #34**: Phase 5 - Commission Calculation & Validation (2h)
+  - Calculate partner commissions using withdrawer-based attribution
+  - Generate validation report, verify deterministic results
+  - Output: `commission-validation-report.json`
+- ⏳ **Issue #35**: Phase 6 - Test Cases & Edge Case Validation (1.5h)
+  - Test activating/deactivating stake, unassigned wallets, stake transitions
+  - Verify consistency across all 61 epochs
+  - Output: Edge case test suite
+
+**Implementation Dependencies**:
+```
+Phase 1 (Data Analysis)
+    ↓
+Phase 2 (Schema) ← parallel → Phase 3 (Rewards Simulator)
+    ↓
+Phase 4 (Import Pipeline) [requires #30, #31, #32]
+    ↓
+Phase 5 (Commission Calculation) [requires #33]
+    ↓
+Phase 6 (Edge Case Testing) [requires #34]
+```
+
+**Documentation**:
+- ✅ Milestone Spec: `docs/specs/milestone-sample-data-seeding.md`
+- ✅ AI Context: `docs/ai-context/data-seeding-context.md`
+- ✅ GitHub Milestone: "Sample Data Seeding & Commission Testing"
+
+**Key Design Decisions**:
+- **Wallet Attribution**: Use withdrawer wallet (economic beneficiary), not staker
+- **Partner Distribution**: Stake-weighted (not wallet count)
+- **Rewards Model**: Simulated 5% APY, ~73 epochs/year
+- **Commission Basis**: Proportional to partner's share of total active stake
+
+**Success Criteria**:
+- [ ] All 61 epochs imported with 178 wallets each
+- [ ] Partner 1: ~50% stake, Partner 2: ~45% stake, Unassigned: 2 wallets (~5%)
+- [ ] Simulated rewards generated for all epochs
+- [ ] Commissions calculated deterministically (repeatable results)
+- [ ] Edge cases handled correctly (activating/deactivating stake)
+- [ ] Validation report shows accurate commission attribution
+
+**Next Steps**:
+1. Create branch: `git checkout -b feature/milestone-sample-data-seeding`
+2. Start with Issue #30 (Data Analysis & Wallet Distribution)
+3. Progress sequentially through phases, following dependency order
+4. Run validation tests after each phase
+5. Generate final validation report in Phase 5
+
+---
+
 **PRIORITY: MVP Admin Dashboard Implementation** (Epic Issue #28)
 
 The project has successfully completed MVP Phases up to Issue #25 (Commissions Viewer UI). All core frontend functionality is operational with Docker deployment.
