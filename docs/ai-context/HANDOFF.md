@@ -47,11 +47,13 @@ Seed Aurora database with real Solana validator data from `temp-data/globalstake
   - ✅ Migration tested (upgrade + downgrade + re-upgrade successful)
   - ✅ Updated `src/core/models/__init__.py` to export new models
   - **Tables**: sample_validator_epoch_summary, sample_stake_accounts, sample_epoch_rewards
-- ⏳ **Issue #32**: Phase 3 - Rewards Simulation Engine (NEXT - 1.5h)
-  - Implement 5% APY simulation logic
-  - Calculate validator commission (5%) and per-wallet proportional rewards
-  - Output: `src/core/services/rewards_simulator.py` module
-- ⏳ **Issue #33**: Phase 4 - Data Import Pipeline (2h)
+- ✅ **Issue #32**: Phase 3 - Rewards Simulation Engine (COMPLETE)
+  - ✅ Implemented 5% APY simulation logic
+  - ✅ Calculate validator commission (5%) and per-wallet proportional rewards
+  - ✅ Created `src/core/services/rewards_simulator.py` module (308 lines)
+  - ✅ Created comprehensive unit tests (520+ lines, 30+ test cases)
+  - ✅ Verified calculation accuracy with manual testing
+- ⏳ **Issue #33**: Phase 4 - Data Import Pipeline (NEXT - 2h)
   - Parse Excel → Transform → Load all 61 epochs (10,858 records)
   - Link wallets to partners, generate simulated rewards
   - Output: `seed_globalstake_sample.py` script
@@ -68,7 +70,7 @@ Seed Aurora database with real Solana validator data from `temp-data/globalstake
 ```
 ✅ Phase 1 (Data Analysis) - COMPLETE
     ↓
-✅ Phase 2 (Schema) - COMPLETE ← parallel → ⏳ Phase 3 (Rewards Simulator) - NEXT
+✅ Phase 2 (Schema) - COMPLETE ← parallel → ✅ Phase 3 (Rewards Simulator) - COMPLETE
     ↓
 ⏳ Phase 4 (Import Pipeline) [requires #30, #31, #32]
     ↓
@@ -116,27 +118,47 @@ Seed Aurora database with real Solana validator data from `temp-data/globalstake
   - Support for stake state tracking (activation_epoch, deactivation_epoch)
 - Commit: `4bc9dab` - "feat: Add sample data database schema for commission testing"
 
+**Phase 3: Rewards Simulation Engine** ✅
+- Created `src/core/services/rewards_simulator.py` (308 lines) with complete simulation logic:
+  - `RewardsSimulator` class with configurable parameters (APY, epochs/year, commission rate)
+  - `simulate_epoch_rewards()`: Calculates total rewards, validator commission (5%), staker rewards (95%)
+  - `calculate_wallet_rewards()`: Proportional reward distribution based on stake weight
+  - `validate_rewards_distribution()`: Ensures rewards sum correctly with tolerance checking
+  - `sol_to_lamports()` / `lamports_to_sol()`: Conversion utilities
+- Created comprehensive unit tests `tests/unit/test_rewards_simulator.py` (520+ lines):
+  - 30+ test cases covering all scenarios
+  - Tests for initialization, validation, edge cases
+  - Realistic scenarios using Phase 1 data (whale wallet, stake concentration)
+  - Deterministic calculation verification
+- Updated `src/core/services/__init__.py` to export RewardsSimulator
+- Verified calculation accuracy with manual testing:
+  - 190K SOL stake → 130.14 SOL epoch rewards (5% APY / 73 epochs)
+  - Validator commission: 6.51 SOL (5%)
+  - Staker rewards: 123.63 SOL (95%)
+  - Proportional wallet distribution validated
+- **Formula**: `epoch_rewards = active_stake * (0.05 / 73)` deterministically calculated using Decimal precision
+- Commit: TBD - "feat: Implement Phase 3 rewards simulation engine"
+
 **Success Criteria Progress**:
 - ✅ Wallet distribution JSON generated (149 wallets analyzed)
 - ✅ Partner 1: 60.48% stake (1 whale), Partner 2: 38.75% (146 wallets), Unassigned: 2 wallets (0.77%)
 - ✅ Database schema created and migrated
-- [ ] Simulated rewards generated for all epochs (Phase 3 next)
-- [ ] All 61 epochs imported (Phase 4)
+- ✅ Rewards simulation engine implemented and tested
+- [ ] All 61 epochs imported (Phase 4 next)
 - [ ] Commissions calculated deterministically (Phase 5)
 - [ ] Edge cases handled correctly (Phase 6)
 - [ ] Validation report shows accurate commission attribution (Phase 5)
 
-**Next Steps for Phase 3** (Issue #32 - 1.5h):
-1. Create `src/core/services/rewards_simulator.py` module
-2. Implement `simulate_epoch_rewards()` function:
-   - Input: active_stake_lamports, epoch
-   - Formula: epoch_rewards = active_stake * (0.05 / 73)
-   - Output: total_epoch_rewards, validator_commission (5%), staker_rewards (95%)
-3. Implement `calculate_wallet_rewards()` function:
-   - Proportional distribution: wallet_rewards = (wallet_stake / total_active_stake) * staker_rewards
-4. Add validation to ensure rewards sum correctly
-5. Create unit tests: `tests/unit/test_rewards_simulator.py`
-6. Document formula derivation and assumptions
+**Next Steps for Phase 4** (Issue #33 - 2h):
+1. Create `scripts/seed_globalstake_sample.py` import script
+2. Parse Excel file using pandas (both sheets)
+3. Import validator record with vote_pubkey and node_pubkey
+4. Import all 149 unique wallets with partner assignments from Phase 1
+5. Import 61 epoch summaries (epochs 800-860)
+6. Import 10,858 stake account records
+7. Generate simulated rewards for all 61 epochs using Phase 3 engine
+8. Validate data integrity (stake totals, wallet counts, foreign keys)
+9. Add progress reporting and transaction rollback on errors
 
 ---
 

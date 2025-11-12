@@ -17,6 +17,7 @@ from src.api.routers import (
     partner_wallets,
     partners,
     periods,
+    sample_commissions,
     validators,
 )
 from src.config.settings import settings
@@ -51,6 +52,7 @@ app.include_router(partners.router, prefix=settings.api_v1_prefix)
 app.include_router(partner_wallets.router, prefix=settings.api_v1_prefix)
 app.include_router(agreements.router, prefix=settings.api_v1_prefix)
 app.include_router(commissions.router, prefix=settings.api_v1_prefix)
+app.include_router(sample_commissions.router, prefix=settings.api_v1_prefix)
 app.include_router(periods.router, prefix=settings.api_v1_prefix)
 
 
