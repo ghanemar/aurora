@@ -125,10 +125,12 @@ export const SampleCommissionsPage: React.FC = () => {
       <Box>
         <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
           <Typography variant="h4" gutterBottom>
-            Sample Data Commission Calculator
+            Sample Data Commission Calculator (Demo)
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Calculate partner commissions using GlobalStake sample data (Epochs 800-860)
+            Calculate partner commissions using GlobalStake sample data (Epochs 800-860).
+            Commission rate is configurable for testing purposes. In production, rates are
+            defined in partner agreements.
           </Typography>
 
           {/* Selection Panel */}
@@ -178,7 +180,7 @@ export const SampleCommissionsPage: React.FC = () => {
               <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   fullWidth
-                  label="Commission Rate"
+                  label="Commission Rate (Demo)"
                   value={commissionRate}
                   onChange={(e) => {
                     setCommissionRate(e.target.value);
@@ -190,7 +192,7 @@ export const SampleCommissionsPage: React.FC = () => {
                     min: 0,
                     max: 1,
                   }}
-                  helperText="Enter as decimal (0.10 = 10%)"
+                  helperText="Enter as decimal (0.10 = 10%). For testing purposes only - production uses agreement rates."
                 />
               </Grid>
 
