@@ -1,6 +1,6 @@
 # Milestone: GlobalStake Sample Data Seeding & Commission Testing
 
-**Status**: Planning
+**Status**: Phases 1 & 2 Complete - Commission Calculation Implemented
 **Priority**: High
 **Target Branch**: `feature/milestone-sample-data-seeding`
 **Estimated Effort**: ~9 hours
@@ -500,26 +500,26 @@ async def calculate_partner_commissions(
     session: AsyncSession,
     validator_id: int,
     epochs: list[int],
-    partner_commission_rate: float = 0.10  # Example: 10% of staker rewards
+    partner_commission_rate: float = 0.50  # Default: 50% of validator commission
 ):
     """
     Calculate partner commissions for given epochs.
 
     Commission Model:
     - Based on partner's share of total active stake
-    - Applied to staker rewards (after validator commission)
+    - Applied to VALIDATOR COMMISSION (5% of epoch rewards), NOT staker rewards
     - Attributed via withdrawer wallet
 
     Args:
         session: Database session
         validator_id: Validator to calculate commissions for
         epochs: List of epochs to process
-        partner_commission_rate: Partner's commission rate (e.g., 0.10 for 10%)
+        partner_commission_rate: Partner's commission rate (e.g., 0.50 for 50%)
     """
     for epoch in epochs:
-        # Get simulated rewards for epoch
+        # Get epoch reward data
         rewards = await get_epoch_rewards(session, validator_id, epoch)
-        staker_rewards = rewards.staker_rewards_lamports
+        validator_commission = rewards.validator_commission_lamports  # 5% of epoch rewards
         total_active_stake = rewards.active_stake_lamports
 
         # Calculate each partner's commission
@@ -529,10 +529,10 @@ async def calculate_partner_commissions(
                 session, partner_id, epoch
             )
 
-            # Calculate proportional commission
+            # Calculate proportional share of validator commission
             stake_proportion = partner_stake / total_active_stake
-            partner_share = staker_rewards * stake_proportion
-            commission = int(partner_share * partner_commission_rate)
+            partner_share_of_validator_commission = validator_commission * stake_proportion
+            commission = int(partner_share_of_validator_commission * partner_commission_rate)
 
             # Store commission record
             await create_partner_commission(
@@ -541,7 +541,7 @@ async def calculate_partner_commissions(
                 validator_id=validator_id,
                 epoch=epoch,
                 partner_stake_lamports=partner_stake,
-                epoch_rewards_lamports=partner_share,
+                partner_share_of_validator_commission_lamports=partner_share_of_validator_commission,
                 commission_lamports=commission
             )
 ```

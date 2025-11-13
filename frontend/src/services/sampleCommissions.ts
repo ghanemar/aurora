@@ -7,9 +7,20 @@ import { api } from './api';
  * API client for sample data commission calculations (epochs 800-860)
  */
 
+export interface ValidatorSummary {
+  validator_vote_pubkey: string;
+  validator_name: string;
+  total_stake_lamports: number;
+  partner_stake_lamports: number;
+  stake_percentage: string;
+  partner_commission_lamports: number;
+}
+
 export interface SampleCommissionCalculation {
   partner_id: string;
   partner_name: string;
+  wallet_count: number;
+  validator_count: number;
   start_epoch: number;
   end_epoch: number;
   epoch_count: number;
@@ -17,11 +28,15 @@ export interface SampleCommissionCalculation {
   total_partner_rewards_lamports: number;
   commission_rate: string;
   total_commission_lamports: number;
+  validator_summaries: ValidatorSummary[];
   epoch_details: Array<{
     epoch: number;
+    validator_vote_pubkey: string;
+    validator_name: string;
     total_active_stake_lamports: number;
     partner_stake_lamports: number;
     stake_percentage: string;
+    validator_commission_lamports: number;
     total_staker_rewards_lamports: number;
     partner_rewards_lamports: number;
     commission_rate: string;
@@ -57,7 +72,7 @@ export const sampleCommissionsService = {
     end_epoch: number;
     commission_rate?: number;
   }): Promise<SampleCommissionCalculation> => {
-    const { partner_id, start_epoch, end_epoch, commission_rate = 0.1 } = params;
+    const { partner_id, start_epoch, end_epoch, commission_rate = 0.5 } = params;
     const response = await api.get<SampleCommissionCalculation>(
       `/api/v1/sample-commissions/partners/${partner_id}`,
       {
@@ -79,7 +94,7 @@ export const sampleCommissionsService = {
     end_epoch: number;
     commission_rate?: number;
   }): Promise<AllPartnersCommissionCalculation> => {
-    const { start_epoch, end_epoch, commission_rate = 0.1 } = params;
+    const { start_epoch, end_epoch, commission_rate = 0.5 } = params;
     const response = await api.get<AllPartnersCommissionCalculation>(
       '/api/v1/sample-commissions/all',
       {

@@ -35,7 +35,7 @@ export const SampleCommissionsPage: React.FC = () => {
   const [selectedPartner, setSelectedPartner] = useState<Partner | null>(null);
   const [startEpoch, setStartEpoch] = useState<SampleEpoch | null>(null);
   const [endEpoch, setEndEpoch] = useState<SampleEpoch | null>(null);
-  const [commissionRate, setCommissionRate] = useState<string>('0.10');
+  const [commissionRate, setCommissionRate] = useState<string>('0.50');
   const [calculationTriggered, setCalculationTriggered] = useState(false);
 
   // Fetch partners for dropdown
@@ -129,8 +129,8 @@ export const SampleCommissionsPage: React.FC = () => {
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
             Calculate partner commissions using GlobalStake sample data (Epochs 800-860).
-            Commission rate is configurable for testing purposes. In production, rates are
-            defined in partner agreements.
+            Partners earn a percentage of the validator's commission (5%) based on their stake share.
+            Commission rate is configurable for testing - production uses agreement rates.
           </Typography>
 
           {/* Selection Panel */}
@@ -192,7 +192,7 @@ export const SampleCommissionsPage: React.FC = () => {
                     min: 0,
                     max: 1,
                   }}
-                  helperText="Enter as decimal (0.10 = 10%). For testing purposes only - production uses agreement rates."
+                  helperText="Enter as decimal (0.50 = 50% of validator commission). For testing - production uses agreement rates."
                 />
               </Grid>
 
@@ -319,9 +319,25 @@ export const SampleCommissionsPage: React.FC = () => {
                 <Grid container spacing={2} sx={{ mt: 1 }}>
                   <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                     <Typography variant="body2" color="text.secondary">
-                      Partner
+                      Total Commission
                     </Typography>
-                    <Typography variant="h6">{calculation.partner_name}</Typography>
+                    <Typography variant="h6" color="primary">
+                      {lamportsToSOL(calculation.total_commission_lamports)} SOL
+                    </Typography>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Wallets Brought
+                    </Typography>
+                    <Typography variant="h6">{calculation.wallet_count}</Typography>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Validators
+                    </Typography>
+                    <Typography variant="h6">{calculation.validator_count}</Typography>
                   </Grid>
 
                   <Grid size={{ xs: 12, sm: 6, md: 3 }}>
@@ -337,41 +353,61 @@ export const SampleCommissionsPage: React.FC = () => {
                       />
                     </Typography>
                   </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Commission Rate
-                    </Typography>
-                    <Typography variant="h6">
-                      {(parseFloat(calculation.commission_rate) * 100).toFixed(1)}%
-                    </Typography>
-                  </Grid>
-
-                  <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Total Commission
-                    </Typography>
-                    <Typography variant="h6" color="primary">
-                      {lamportsToSOL(calculation.total_commission_lamports)} SOL
-                    </Typography>
-                  </Grid>
                 </Grid>
 
-                <Box sx={{ mt: 3 }}>
-                  <Typography variant="body2" color="text.secondary">
-                    Total Partner Stake
-                  </Typography>
-                  <Typography variant="body1">
-                    {lamportsToSOL(calculation.total_partner_stake_lamports)} SOL
-                  </Typography>
-
-                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    Total Partner Rewards
-                  </Typography>
-                  <Typography variant="body1">
-                    {lamportsToSOL(calculation.total_partner_rewards_lamports)} SOL
-                  </Typography>
-                </Box>
+                {/* Validator Breakdown */}
+                {calculation.validator_summaries && calculation.validator_summaries.length > 0 && (
+                  <Box sx={{ mt: 3 }}>
+                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                      Validator Breakdown
+                    </Typography>
+                    {calculation.validator_summaries.map((validator) => (
+                      <Paper
+                        key={validator.validator_vote_pubkey}
+                        variant="outlined"
+                        sx={{ p: 2, mt: 2 }}
+                      >
+                        <Typography variant="subtitle2" fontWeight="bold" gutterBottom>
+                          {validator.validator_name}
+                        </Typography>
+                        <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Total Stake (Avg)
+                            </Typography>
+                            <Typography variant="body2">
+                              {lamportsToSOL(validator.total_stake_lamports)} SOL
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Partner Stake (Avg)
+                            </Typography>
+                            <Typography variant="body2">
+                              {lamportsToSOL(validator.partner_stake_lamports)} SOL
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Partner Share
+                            </Typography>
+                            <Typography variant="body2">
+                              {(parseFloat(validator.stake_percentage) * 100).toFixed(2)}%
+                            </Typography>
+                          </Grid>
+                          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Commission from Validator
+                            </Typography>
+                            <Typography variant="body2" fontWeight="bold" color="primary">
+                              {lamportsToSOL(validator.partner_commission_lamports)} SOL
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </Paper>
+                    ))}
+                  </Box>
+                )}
               </Paper>
 
               {/* Per-Epoch Details */}
@@ -385,17 +421,24 @@ export const SampleCommissionsPage: React.FC = () => {
                     <thead>
                       <tr style={{ borderBottom: '2px solid #ddd' }}>
                         <th style={{ padding: '8px', textAlign: 'left' }}>Epoch</th>
+                        <th style={{ padding: '8px', textAlign: 'left' }}>Validator</th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>
-                          Stake %
+                          Total Stake (SOL)
                         </th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>
                           Partner Stake (SOL)
                         </th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>
-                          Partner Rewards (SOL)
+                          Partner %
                         </th>
                         <th style={{ padding: '8px', textAlign: 'right' }}>
-                          Commission (SOL)
+                          Total Epoch Rewards (SOL)
+                        </th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>
+                          Validator Commission (SOL)
+                        </th>
+                        <th style={{ padding: '8px', textAlign: 'right' }}>
+                          Partner Commission (SOL)
                         </th>
                       </tr>
                     </thead>
@@ -406,14 +449,23 @@ export const SampleCommissionsPage: React.FC = () => {
                           style={{ borderBottom: '1px solid #eee' }}
                         >
                           <td style={{ padding: '8px' }}>{detail.epoch}</td>
+                          <td style={{ padding: '8px' }}>{detail.validator_name}</td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {(parseFloat(detail.stake_percentage) * 100).toFixed(2)}%
+                            {lamportsToSOL(detail.total_active_stake_lamports)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
                             {lamportsToSOL(detail.partner_stake_lamports)}
                           </td>
                           <td style={{ padding: '8px', textAlign: 'right' }}>
-                            {lamportsToSOL(detail.partner_rewards_lamports)}
+                            {(parseFloat(detail.stake_percentage) * 100).toFixed(2)}%
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>
+                            {lamportsToSOL(
+                              detail.validator_commission_lamports + detail.total_staker_rewards_lamports
+                            )}
+                          </td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>
+                            {lamportsToSOL(detail.validator_commission_lamports)}
                           </td>
                           <td
                             style={{

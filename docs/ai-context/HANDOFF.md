@@ -162,6 +162,142 @@ Seed Aurora database with real Solana validator data from `temp-data/globalstake
 
 ---
 
+## Commission Calculation Architecture Enhancement - COMPLETE (2025-11-13)
+
+### Current Status
+✅ **COMPLETE** - Major architectural change to commission calculation system implemented, tested, and documented
+
+### What Was Accomplished
+
+**Database Schema Updates**:
+- ✅ Added `validator_name` field to `sample_validator_epoch_summary` table
+- ✅ Created migration `a671d61b60ff_add_validator_name_to_sample_validator_.py`
+- ✅ Updated existing validator record with name "GS Validator 1"
+
+**Backend Commission Logic Overhaul** (`src/core/services/commission_calculator.py`):
+- ✅ **CRITICAL CHANGE**: Commission now calculated from validator commission (5%), NOT staker rewards (95%)
+- ✅ Changed default commission rate from 10% (0.10) to 50% (0.50)
+- ✅ Added `ValidatorSummary` TypedDict for per-validator aggregation
+- ✅ Enhanced `EpochCommissionDetail` with validator metadata (vote_pubkey, validator_name)
+- ✅ Added `wallet_count` and `validator_count` to `CommissionCalculationResult`
+- ✅ Implemented validator summary aggregation logic (averages, totals)
+
+**API Schema Updates** (`src/api/schemas/commissions.py`):
+- ✅ Added `ValidatorSummarySchema` with 6 fields
+- ✅ Enhanced `EpochCommissionDetailSchema` with validator fields
+- ✅ Updated `CommissionCalculationResponseSchema` with wallet_count, validator_count, validator_summaries
+
+**API Endpoint Updates** (`src/api/routers/sample_commissions.py`):
+- ✅ Updated default commission rate parameter to 0.50
+- ✅ Updated endpoint documentation to reflect validator commission basis
+
+**Frontend UI Enhancement** (`frontend/src/pages/SampleCommissionsPage.tsx`):
+- ✅ Changed default commission rate input to 0.50
+- ✅ Added **Validator Breakdown** section with per-validator cards showing:
+  - Validator name
+  - Total Stake (Average, SOL)
+  - Partner Stake (Average, SOL)
+  - Partner Share (percentage)
+  - Commission from Validator (SOL)
+- ✅ Expanded **Per-Epoch Breakdown** table from 5 to 8 columns:
+  - Epoch | Validator | Total Stake | Partner Stake | Partner % | Validator Commission | Staker Rewards | Partner Commission
+
+**Frontend Types** (`frontend/src/services/sampleCommissions.ts`):
+- ✅ Added `ValidatorSummary` interface
+- ✅ Enhanced `SampleCommissionCalculation` with wallet_count, validator_count, validator_summaries
+- ✅ Updated epoch_details interface with validator_vote_pubkey, validator_name, validator_commission_lamports
+
+**Documentation Updates** (3-Tier System):
+- ✅ Created `src/core/services/CONTEXT.md` - Business logic patterns and commission calculation architecture
+- ✅ Created `src/api/routers/CONTEXT.md` - API endpoint organization and response structures
+- ✅ Created `frontend/src/pages/CONTEXT.md` - React page components and data flow
+- ✅ Updated `docs/specs/milestone-sample-data-seeding.md` - Corrected commission formula and default rate
+- ✅ Updated `docs/ai-context/docs-overview.md` - Added new documentation files to 3-tier system
+
+### Key Architecture Decision
+
+**Commission Calculation Basis Changed**:
+- **Previous (Incorrect)**: Partners earn % of staker rewards (95% of epoch rewards)
+- **Current (Correct)**: Partners earn % of validator commission (5% of epoch rewards)
+
+**Rationale**: Partners are compensated from validator revenue (commission), not from staker returns. Partners receive a share of the validator's commission revenue based on stake they introduce.
+
+**Formula**:
+```python
+# Per epoch calculation
+validator_commission = epoch_rewards * 0.05  # 5% validator commission
+partner_stake_ratio = partner_stake / total_validator_stake
+partner_share_of_validator_commission = validator_commission * partner_stake_ratio
+partner_commission = partner_share_of_validator_commission * commission_rate  # Default 0.50
+```
+
+### Next Steps to Complete Sample Data Milestone
+
+1. **Update Commission Calculator Tests** (1h)
+   - Modify tests in `tests/services/test_commission_calculator.py`
+   - Verify new calculation logic (validator commission basis, 50% rate)
+   - Test ValidatorSummary aggregation
+   - Test wallet_count and validator_count fields
+
+2. **Add CSV Export Endpoint** (1-2h)
+   - Create `GET /api/v1/sample-commissions/partners/{id}/export` endpoint
+   - Include metadata: partner name, date range, validator info
+   - Return CSV with all 8 columns from per-epoch breakdown
+   - Add proper CSV headers and formatting
+
+3. **Add CSV Download Button** (30min)
+   - Add download button to per-epoch breakdown section in UI
+   - Wire up to new CSV export endpoint
+   - Handle download trigger and file naming
+   - Add loading state during export
+
+4. **End-to-End Testing** (1h)
+   - Test with GlobalStake Partner 1 (whale wallet, 60% stake)
+   - Verify calculations match expected results
+   - Test epoch range selection (800-860)
+   - Verify validator breakdown displays correctly
+   - Test commission rate adjustments (0.10, 0.50, 1.00)
+
+### Key Files Modified
+
+**Backend**:
+- `src/core/models/sample_data.py` - Added validator_name field
+- `src/core/services/commission_calculator.py` - Commission logic overhaul (lines 94-275)
+- `src/api/schemas/commissions.py` - Enhanced schemas with validator info
+- `src/api/routers/sample_commissions.py` - Updated default commission rate
+- `alembic/versions/a671d61b60ff_add_validator_name_to_sample_validator_.py` - New migration
+
+**Frontend**:
+- `frontend/src/pages/SampleCommissionsPage.tsx` - UI enhancement (lines 310-480)
+- `frontend/src/services/sampleCommissions.ts` - Type updates
+
+**Documentation**:
+- `src/core/services/CONTEXT.md` - NEW - Service layer documentation
+- `src/api/routers/CONTEXT.md` - NEW - API router documentation
+- `frontend/src/pages/CONTEXT.md` - NEW - Frontend page documentation
+- `docs/specs/milestone-sample-data-seeding.md` - Formula correction
+- `docs/ai-context/docs-overview.md` - Documentation index update
+
+### Context for Next Session
+
+**Commission Calculation Model**:
+- Commission source: Validator 5% commission (NOT 95% staker rewards)
+- Default partner rate: 50% of validator commission allocated to partner
+- Attribution: Withdrawer-based (economic beneficiary)
+- Distribution: Stake-weighted proportional
+
+**UI Structure**:
+- Summary cards: Total Commission, Wallets Brought, Validators, Epoch Range
+- Validator breakdown: Per-validator cards with metrics
+- Per-epoch table: 8 columns with detailed breakdown
+
+**Testing Priorities**:
+1. Update and run commission calculator tests
+2. Implement CSV export for sending reports to partners
+3. End-to-end validation with realistic partner data
+
+---
+
 **PRIORITY: MVP Admin Dashboard Implementation** (Epic Issue #28)
 
 The project has successfully completed MVP Phases up to Issue #25 (Commissions Viewer UI). All core frontend functionality is operational with Docker deployment.

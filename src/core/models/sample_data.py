@@ -49,6 +49,7 @@ class SampleValidatorEpochSummary(BaseModel):
         summary_id: Unique summary record identifier (UUID)
         validator_vote_pubkey: Validator vote account public key (constant across epochs)
         validator_node_pubkey: Validator node public key (constant across epochs)
+        validator_name: Human-readable validator name for display (nullable)
         epoch: Solana epoch number (800-860 in sample data)
         commission_bps: Validator commission rate in basis points (500 = 5%)
         rpc_activated_stake_lamports: Activated stake from RPC (may differ from active)
@@ -84,6 +85,12 @@ class SampleValidatorEpochSummary(BaseModel):
         String(44),
         nullable=False,
         comment="Validator node public key",
+    )
+
+    validator_name: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        comment="Human-readable validator name for display",
     )
 
     epoch: Mapped[int] = mapped_column(

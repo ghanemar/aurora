@@ -176,7 +176,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
         <img
           src="/assets/logo.svg"
           alt="Global Stake"
-          style={{ height: '15px', width: 'auto' }}
+          style={{ height: '15', width: 'auto' }}
         />
       </Box>
 

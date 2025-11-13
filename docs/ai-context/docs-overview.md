@@ -29,14 +29,19 @@ This hierarchy allows AI agents to load targeted context efficiently while maint
 
 ## Tier 2: Component-Level Documentation
 
-*To be created as major components are implemented. Aurora currently operates at Tier 3 with feature-specific documentation.*
+### Backend Services
+- **[Service Layer](/src/core/services/CONTEXT.md)** - *Business logic patterns.* Commission calculation architecture, withdrawer-based attribution, stake-weighted distribution, and service design patterns
 
 ## Tier 3: Feature-Specific Documentation
 
 Granular CONTEXT.md files co-located with code for minimal cascade effects:
 
-### API & Authentication
+### API & Routes
 - **[API Layer](/src/api/CONTEXT.md)** - *API patterns.* FastAPI authentication system, JWT tokens, endpoint design, Pydantic validation, and dependency injection patterns
+- **[API Routers](/src/api/routers/CONTEXT.md)** - *Endpoint organization.* Sample commissions endpoints, response structures, query parameters, and frontend integration patterns
+
+### Frontend Pages
+- **[Page Components](/frontend/src/pages/CONTEXT.md)** - *React pages.* SampleCommissionsPage structure, data flow, UI components, and Material-UI integration
 
 
 

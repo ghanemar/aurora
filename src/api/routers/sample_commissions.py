@@ -118,8 +118,8 @@ async def calculate_partner_commission(
     start_epoch: int = Query(..., description="First epoch in range (inclusive)", ge=0),
     end_epoch: int = Query(..., description="Last epoch in range (inclusive)", ge=0),
     commission_rate: Decimal = Query(
-        Decimal("0.10"),
-        description="Commission rate as decimal (0.10 = 10%)",
+        Decimal("0.50"),
+        description="Partner commission rate as decimal (0.50 = 50% of validator commission)",
         ge=0.0,
         le=1.0,
     ),
@@ -130,8 +130,8 @@ async def calculate_partner_commission(
 
     This endpoint calculates the commission owed to a partner based on:
     - Their stake (via withdrawer wallets) in each epoch
-    - Proportional reward distribution
-    - Specified commission rate
+    - Proportional share of validator commission (5%)
+    - Partner commission rate applied to validator commission
 
     The epoch range must be continuous (no gaps).
 
@@ -198,8 +198,8 @@ async def calculate_all_partners_commission(
     start_epoch: int = Query(..., description="First epoch in range (inclusive)", ge=0),
     end_epoch: int = Query(..., description="Last epoch in range (inclusive)", ge=0),
     commission_rate: Decimal = Query(
-        Decimal("0.10"),
-        description="Commission rate as decimal (0.10 = 10%)",
+        Decimal("0.50"),
+        description="Partner commission rate as decimal (0.50 = 50% of validator commission)",
         ge=0.0,
         le=1.0,
     ),
