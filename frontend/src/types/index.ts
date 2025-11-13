@@ -205,6 +205,21 @@ export interface Period {
 }
 
 /**
+ * Sample Data Epoch Types
+ */
+
+export interface SampleEpoch {
+  epoch: number;
+  total_active_stake_lamports: number;
+  total_staker_rewards_lamports: number;
+}
+
+export interface SampleEpochRange {
+  start_epoch: number;
+  end_epoch: number;
+}
+
+/**
  * Commission Types
  */
 

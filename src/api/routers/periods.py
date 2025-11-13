@@ -24,9 +24,9 @@ class PeriodResponse(BaseModel):
 
     period_id: UUID = Field(..., description="Period UUID")
     chain_id: str = Field(..., description="Chain identifier")
-    epoch_number: int | None = Field(None, description="Epoch number (blockchain-specific)")
-    start_time: str = Field(..., description="Period start timestamp")
-    end_time: str = Field(..., description="Period end timestamp")
+    period_identifier: str = Field(..., description="Chain-specific period ID (e.g., '850' for Solana epoch)")
+    period_start: str = Field(..., description="Period start timestamp")
+    period_end: str = Field(..., description="Period end timestamp")
 
 
 class PeriodsListResponse(BaseModel):
@@ -63,7 +63,7 @@ async def list_periods(
     """
     # Build query
     query = select(CanonicalPeriod).order_by(
-        CanonicalPeriod.chain_id, CanonicalPeriod.epoch_number.desc()
+        CanonicalPeriod.chain_id, CanonicalPeriod.period_identifier.desc()
     )
 
     if chain_id:
@@ -90,9 +90,9 @@ async def list_periods(
         PeriodResponse(
             period_id=period.period_id,
             chain_id=period.chain_id,
-            epoch_number=period.epoch_number,
-            start_time=period.start_time.isoformat(),
-            end_time=period.end_time.isoformat(),
+            period_identifier=period.period_identifier,
+            period_start=period.period_start.isoformat(),
+            period_end=period.period_end.isoformat(),
         )
         for period in periods
     ]
@@ -147,17 +147,17 @@ async def get_periods_by_date_range(
         ) from e
 
     # Build query to find periods that overlap with the date range
-    # A period overlaps if: period.start_time <= end_date AND period.end_time >= start_date
+    # A period overlaps if: period.period_start <= end_date AND period.period_end >= start_date
     query = (
         select(CanonicalPeriod)
         .where(
             and_(
                 CanonicalPeriod.chain_id == chain_id,
-                CanonicalPeriod.start_time <= end_dt,
-                CanonicalPeriod.end_time >= start_dt,
+                CanonicalPeriod.period_start <= end_dt,
+                CanonicalPeriod.period_end >= start_dt,
             )
         )
-        .order_by(CanonicalPeriod.start_time)
+        .order_by(CanonicalPeriod.period_start)
     )
 
     # Execute query
@@ -169,9 +169,9 @@ async def get_periods_by_date_range(
         PeriodResponse(
             period_id=period.period_id,
             chain_id=period.chain_id,
-            epoch_number=period.epoch_number,
-            start_time=period.start_time.isoformat(),
-            end_time=period.end_time.isoformat(),
+            period_identifier=period.period_identifier,
+            period_start=period.period_start.isoformat(),
+            period_end=period.period_end.isoformat(),
         )
         for period in periods
     ]

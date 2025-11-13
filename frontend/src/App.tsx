@@ -9,7 +9,7 @@ import { ValidatorsPage } from './pages/ValidatorsPage';
 import { PartnersPage } from './pages/PartnersPage';
 import { PartnerWalletsPage } from './pages/PartnerWalletsPage';
 import { AgreementsPage } from './pages/AgreementsPage';
-import { CommissionsPage } from './pages/CommissionsPage';
+import { SampleCommissionsPage } from './pages/SampleCommissionsPage';
 import { theme } from './theme';
 
 /**
@@ -91,7 +91,7 @@ function App() {
                 path="/commissions"
                 element={
                   <PrivateRoute>
-                    <CommissionsPage />
+                    <SampleCommissionsPage />
                   </PrivateRoute>
                 }
               />
